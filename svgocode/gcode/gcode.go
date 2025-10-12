@@ -117,7 +117,7 @@ func (g *Gcode) Append(g2 *Gcode, plotterConf *plotter.PlotterConfig) {
 	gEndRetracted := math64.VectorF3{X: g.EndCoord.X, Y: g2.EndCoord.Y, Z: plotterConf.RetractHeight}
 	if !g.EndCoord.Equal(g2.StartCoord) && !g.EndCoord.Equal(g2StartRetracted) && !gEndRetracted.Equal(g2.StartCoord) {
 		ins.Retract(g)
-		ins.Move(g, g2StartRetracted, plotterConf.RetractSpeed, false)
+		ins.Move(g, g2StartRetracted, plotterConf.RetractSpeed)
 	}
 	g.EndCoord = g2.EndCoord
 	g.Code.Append(g2.Code)
@@ -139,7 +139,7 @@ func NewGcodePrefix(plotterConf *plotter.PlotterConfig, firstSegment *Gcode) *Gc
 	g.AppendCode("--- SVGOCODE START ---")
 	target := math64.VectorF3{X: firstSegment.StartCoord.X, Y: firstSegment.StartCoord.Y, Z: plotterConf.RetractHeight}
 	g.AppendCode("; Moving to start position of first segment")
-	ins.Move(g, target, plotterConf.RetractSpeed, false)
+	ins.Move(g, target, plotterConf.RetractSpeed)
 	g.StartCoord = target
 	g.EndCoord = target
 	g.BoundsMin = target
@@ -153,7 +153,7 @@ func NewGcodeSuffix(plotterConf *plotter.PlotterConfig, lastSegment *Gcode) *Gco
 	g := NewGcode()
 	target := math64.VectorF3{X: lastSegment.EndCoord.X, Y: lastSegment.EndCoord.Y, Z: plotterConf.RetractHeight}
 	g.AppendCode("; SVGOCODE finished, retracting")
-	ins.Move(g, target, plotterConf.RetractSpeed, false)
+	ins.Move(g, target, plotterConf.RetractSpeed)
 	g.AppendCode("; --- SVGOCODE END ---")
 	g.StartCoord = target
 	g.EndCoord = target

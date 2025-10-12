@@ -45,7 +45,7 @@ func (d *Direct) Line(l *svg.Line) *gcode.Gcode {
 	g.BoundsMax.Y = l.X1
 	// Actual bounds values will be updated by move operation
 	g.StartCoord = math64.VectorF3{X: l.X1, Y: l.Y1, Z: d.plotterConf.DrawHeight}
-	d.ins.Move(g, g.StartCoord, d.plotterConf.DrawSpeed, false)
+	d.ins.Move(g, g.StartCoord, d.plotterConf.DrawSpeed)
 	d.ins.Draw(g, math64.VectorF2{X: l.X2, Y: l.Y2})
 	return g
 }
@@ -67,7 +67,14 @@ func (d *Direct) Polyline(p *svg.Polyline) *gcode.Gcode {
 func (d *Direct) Circle(c *svg.Circle) *gcode.Gcode {
 	g := gcode.NewGcode()
 	d.addIdComment(g, "Circle", c.Id)
-	llog.Warn("Circle not implemented\n")
+	g.BoundsMin.X = c.CX - c.R
+	g.BoundsMin.Y = c.CY - c.R
+	g.BoundsMax.X = c.CX + c.R
+	g.BoundsMax.Y = c.CY + c.R
+	// Start at the top of the circle
+	g.StartCoord = math64.VectorF3{X: c.CX, Y: c.CY - c.R, Z: d.plotterConf.DrawHeight}
+	d.ins.Move(g, g.StartCoord, d.plotterConf.DrawSpeed)
+	d.ins.DrawCircle(g, math64.VectorF2{X: 0, Y: c.R}, c.R, true)
 	return g
 }
 
