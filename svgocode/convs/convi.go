@@ -17,13 +17,11 @@ type ConverterI interface {
 }
 
 // Convert using the converter, based on the element's type
-func SVGConvert(s svg.SVGGraphicsElement, conv ConverterI) *gcode.Gcode {
+func SVGConvert(s svg.SVGShapeElement, conv ConverterI) *gcode.Gcode {
 	switch s.(type) {
 	case *svg.Path:
 		return conv.Path(s.(*svg.Path))
 	case *svg.Line:
-		//var sp svg.Line = s.(svg.Line)
-		//return conv.Line(&sp)
 		return conv.Line(s.(*svg.Line))
 	case *svg.Rect:
 		return conv.Rect(s.(*svg.Rect))
@@ -36,7 +34,7 @@ func SVGConvert(s svg.SVGGraphicsElement, conv ConverterI) *gcode.Gcode {
 	case *svg.Polyline:
 		return conv.Polyline(s.(*svg.Polyline))
 	default:
-		llog.Errorf("Unknown SVG object received, cannot convert to gcode. Type: %T\n", s)
+		llog.Panicf("Unknown SVG object received, cannot convert to gcode. Type: %T\n", s)
 		return nil
 	}
 }

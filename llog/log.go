@@ -7,6 +7,7 @@ import (
 )
 
 const (
+	LPanic = -1
 	LFatal = 0
 	LError = 1
 	LWarn  = 2
@@ -20,7 +21,7 @@ type Log struct {
 	writer io.Writer
 }
 
-var logDefault Log = Log{level: LInfo, prefix: "", writer: os.Stderr}
+var logDefault Log = Log{level: LInfo, prefix: "SVGOCODE", writer: os.Stderr}
 
 var log *Log = &logDefault
 
@@ -29,6 +30,12 @@ func SetLogger(l *Log) {
 }
 
 func SetLevel(level int) {
+	if level > LDebug {
+		level = LDebug
+	}
+	if level < LFatal {
+		level = LFatal
+	}
 	log.level = level
 }
 
@@ -38,6 +45,8 @@ func SetWriter(w io.Writer) {
 
 func level2str(level int) string {
 	switch level {
+	case LPanic:
+		return "Panic"
 	case LFatal:
 		return "Fatal"
 	case LError:
@@ -52,21 +61,36 @@ func level2str(level int) string {
 	return ""
 }
 
-func (l *Log) tag() string {
-	return fmt.Sprintf("%s[%s]: ", l.prefix, level2str(l.level))
+func (l *Log) tag(level int) string {
+	return fmt.Sprintf("%s[%s]: ", l.prefix, level2str(level))
 }
+
+// Return log string
+func (l *Log) logs(level int, v ...any) string {
+	return l.tag(level) + fmt.Sprint(v...)
+}
+
+// Return log (formatted string)
+func (l *Log) logsf(level int, format string, v ...any) string {
+	return l.tag(level) + fmt.Sprintf(format, v...)
+}
+
+// Log string to file, if level requirement is met
 func (l *Log) log(level int, v ...any) {
 	if l.level >= level {
-		fmt.Fprint(l.writer, l.tag())
-		fmt.Fprint(l.writer, v...)
+		fmt.Fprint(l.writer, l.logs(level, v...))
 	}
 }
 
+// Log (formatted string) to file, if level requirement is met
 func (l *Log) logf(level int, format string, v ...any) {
 	if l.level >= level {
-		fmt.Fprint(l.writer, l.tag())
-		fmt.Fprintf(l.writer, format, v...)
+		fmt.Fprint(l.writer, l.logsf(level, format, v...))
 	}
+}
+
+func (l *Log) Panic(v ...any) {
+	panic(l.logs(LPanic, v...))
 }
 
 func (l *Log) Fatal(v ...any) {
@@ -90,6 +114,10 @@ func (l *Log) Debug(v ...any) {
 	l.log(LDebug, v...)
 }
 
+func (l *Log) Panicf(format string, v ...any) {
+	panic(l.logsf(LPanic, format, v...))
+}
+
 func (l *Log) Fatalf(format string, v ...any) {
 	l.logf(LFatal, format, v...)
 	os.Exit(1)
@@ -111,6 +139,10 @@ func (l *Log) Debugf(format string, v ...any) {
 	l.logf(LDebug, format, v...)
 }
 
+func Panic(v ...any) {
+	log.Panic(v...)
+}
+
 func Fatal(v ...any) {
 	log.Fatal(v...)
 }
@@ -129,6 +161,10 @@ func Info(v ...any) {
 
 func Debug(v ...any) {
 	log.Debug(v...)
+}
+
+func Panicf(format string, v ...any) {
+	log.Panicf(format, v...)
 }
 
 func Fatalf(format string, v ...any) {

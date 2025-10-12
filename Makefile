@@ -25,7 +25,7 @@ run: build
 
 dev: build-dev
 	# Run with debug info
-	DEBUG=TRUE ./$(builddir)/$(target)
+	DEBUG=TRUE ./$(builddir)/$(target) -v 5
 
 gdb: build-dev
 	# Run via GDB

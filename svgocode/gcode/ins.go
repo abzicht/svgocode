@@ -19,6 +19,12 @@ func NewIns(plotterConf *plotter.PlotterConfig) *Ins {
 	return ins
 }
 
+// Add a comment line
+func (ins *Ins) AddComment(g *Gcode, comment string) *Gcode {
+	g.AppendCode(fmt.Sprintf("; %s", comment))
+	return g
+}
+
 // Retract to preconfigured height using Move
 func (ins *Ins) Retract(g *Gcode) *Gcode {
 	g.AppendCode(fmt.Sprintf("; Retracting"))

@@ -12,11 +12,12 @@ import (
 // Convert an SVG object to gcode instructions
 func Svg2Gcode(s *svg.SVG, plotterConf *plotter.PlotterConfig, conv convs.ConverterI, order ordering.OrderingI) *gcode.Gcode {
 	var gcodes []*gcode.Gcode
-	var svgElements []svg.SVGGraphicsElement = s.GetGraphicsElements()
-	// First, convert the svg objects to individual gcode segments using the
-	// provided converter.
-	for _, el := range svgElements {
-		gcodes = append(gcodes, convs.SVGConvert(el, conv))
+	for svgElement := range svg.Seq(s) {
+		// First, convert the svg objects to individual gcode segments using the
+		// provided converter.
+		if svg.IsLeaf(svgElement) {
+			gcodes = append(gcodes, convs.SVGConvert(svgElement, conv))
+		}
 	}
 	// Then, order the gcode segments, e.g., such that travel distance is
 	// minimized (depends on the given ordering method)

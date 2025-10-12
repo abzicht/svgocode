@@ -108,8 +108,9 @@ func (g *Gcode) AppendSimple(g2 *Gcode) {
 	g.Code.Append(g2.Code)
 }
 
-// Join two gcodes, merging their boundaries, start/end corrdinates, and code.
-// Adds Retract command in-between both codes.
+// Join two gcodes, merging their boundaries, start/end coordinates, and code.
+// Adds Retract command in-between both codes, if they end/start at different
+// positions.
 func (g *Gcode) Append(g2 *Gcode, plotterConf *plotter.PlotterConfig) {
 	ins := NewIns(plotterConf)
 	g2StartRetracted := math64.VectorF3{X: g2.StartCoord.X, Y: g2.StartCoord.Y, Z: plotterConf.RetractHeight}
