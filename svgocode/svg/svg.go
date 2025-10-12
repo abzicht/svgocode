@@ -4,6 +4,7 @@ import (
 	"encoding/xml"
 
 	"github.com/abzicht/gogenericfunc/fun"
+	"github.com/abzicht/svgocode/llog"
 	"github.com/abzicht/svgocode/svgocode/math64"
 )
 
@@ -76,6 +77,25 @@ type SVG struct {
 	Height  string   `xml:"height,attr"`
 	SVGCoreAttributes
 	SVGElements
+}
+
+func (s *SVG) UserUnit() (unit math64.UnitType) {
+	defer func() {
+		if r := recover(); r != nil {
+			llog.Warnf("Failed to determine SVG's unit type based on width/height: '%s'. Assuming millimeters. Verify produced gcode!\n", r)
+			unit = math64.UnitMM
+		}
+	}()
+	if len(s.Width) > 0 {
+		_, unit = math64.NumberUnit(s.Width)
+		return unit
+	} else if len(s.Height) > 0 {
+		_, unit = math64.NumberUnit(s.Height)
+		return unit
+	} else {
+		llog.Panic("Could not determine SVG's unit type. Assuming millimeters. Verify produced gcode!\n")
+	}
+	return
 }
 
 type Grouping struct {

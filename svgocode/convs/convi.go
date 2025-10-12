@@ -1,23 +1,24 @@
 package convs
 
 import (
+	"github.com/abzicht/gogenericfunc/fun"
 	"github.com/abzicht/svgocode/llog"
 	"github.com/abzicht/svgocode/svgocode/gcode"
 	"github.com/abzicht/svgocode/svgocode/svg"
 )
 
 type ConverterI interface {
-	Path(p *svg.Path) *gcode.Gcode
-	Line(l *svg.Line) *gcode.Gcode
-	Rect(c *svg.Rect) *gcode.Gcode
-	Circle(c *svg.Circle) *gcode.Gcode
-	Ellipse(c *svg.Ellipse) *gcode.Gcode
-	Polygon(p *svg.Polygon) *gcode.Gcode
-	Polyline(p *svg.Polyline) *gcode.Gcode
+	Path(p *svg.Path) fun.Option[*gcode.Gcode]
+	Line(l *svg.Line) fun.Option[*gcode.Gcode]
+	Rect(c *svg.Rect) fun.Option[*gcode.Gcode]
+	Circle(c *svg.Circle) fun.Option[*gcode.Gcode]
+	Ellipse(c *svg.Ellipse) fun.Option[*gcode.Gcode]
+	Polygon(p *svg.Polygon) fun.Option[*gcode.Gcode]
+	Polyline(p *svg.Polyline) fun.Option[*gcode.Gcode]
 }
 
 // Convert using the converter, based on the element's type
-func SVGConvert(s svg.SVGShapeElement, conv ConverterI) *gcode.Gcode {
+func SVGConvert(s svg.SVGShapeElement, conv ConverterI) fun.Option[*gcode.Gcode] {
 	switch s.(type) {
 	case *svg.Path:
 		return conv.Path(s.(*svg.Path))
