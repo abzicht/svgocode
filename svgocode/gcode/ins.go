@@ -25,6 +25,26 @@ func (ins *Ins) AddComment(g *Gcode, comment string) *Gcode {
 	return g
 }
 
+// Set extrusion speed for a given mode (G0/G1)
+func (ins *Ins) SetExtrusion(g *Gcode, extSpeed math64.Speed, forDrawing bool) *Gcode {
+	var gcmd string = "G0"
+	if forDrawing {
+		gcmd = "G1"
+	}
+	g.AppendCode(fmt.Sprintf("%s E%f", gcmd, extSpeed))
+	return g
+}
+
+// Set the default speed for a given move mode (G0/G1)
+func (ins *Ins) SetSpeed(g *Gcode, speed math64.Speed, forDrawing bool) *Gcode {
+	var gcmd string = "G0"
+	if forDrawing {
+		gcmd = "G1"
+	}
+	g.AppendCode(fmt.Sprintf("%s F%f", gcmd, speed))
+	return g
+}
+
 // Retract to preconfigured height using Move
 func (ins *Ins) Retract(g *Gcode) *Gcode {
 	g.AppendCode(fmt.Sprintf("; Retracting"))
@@ -47,24 +67,8 @@ func (ins *Ins) Move(g *Gcode, target math64.VectorF3, speed math64.Speed) *Gcod
 // Updates boundary and end coordinate information
 func (ins *Ins) move(g *Gcode, target math64.VectorF3, speed math64.Speed, isDrawing bool) *Gcode {
 	g.EndCoord = target
-	if target.X < g.BoundsMin.X {
-		g.BoundsMin.X = target.X
-	}
-	if target.Y < g.BoundsMin.Y {
-		g.BoundsMin.Y = target.Y
-	}
-	if target.Z < g.BoundsMin.Z {
-		g.BoundsMin.Z = target.Z
-	}
-	if target.X > g.BoundsMax.X {
-		g.BoundsMax.X = target.X
-	}
-	if target.Y > g.BoundsMax.Y {
-		g.BoundsMax.Y = target.Y
-	}
-	if target.Z > g.BoundsMax.Z {
-		g.BoundsMax.Z = target.Z
-	}
+	g.BoundsMin = g.BoundsMin.Min(target)
+	g.BoundsMax = g.BoundsMax.Max(target)
 	var gcmd string = "G0"
 	if isDrawing {
 		gcmd = "G1"

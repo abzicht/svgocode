@@ -60,7 +60,7 @@ func recursePath(yield func([]SVGElement) bool, currentPath []SVGElement, svgEle
 			}
 		case fun.None[[]SVGElement]:
 		default:
-			llog.Panic("Unknown Option type for SVG elements: %T\n", childrenOpt)
+			llog.Panicf("Unknown Option type for SVG elements: %T\n", childrenOpt)
 		}
 	}
 	return true

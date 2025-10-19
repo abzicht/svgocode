@@ -3,30 +3,21 @@ package plotter
 import "github.com/abzicht/svgocode/svgocode/math64"
 
 var gCodePrefix string = `
-;FLAVOR:Marlin
-;TARGET_MACHINE.NAME:LONGER LK5 Pro
-;Generated with Cura_SteamEngine 5.10.0
 M106 S0 ;Turn-off fan
 M107 ; Turn-off fan
 M104 S0 ;Turn-off hotend
 M140 S0 ;Turn-off bed
-; LONGER Start G-code
+;
 G21 ; metric values (mm)
 G90 ; absolute positioning
 M82 ; set extruder to absolute mode
 M107 ; start with the fan off
 G92 E0 ; Reset Extruder
 G28 ; Home all axes
-G1 Z40.0 F3000 ; Move Z Axis up little to prevent scratching of Heat Bed
 G92 E0 ; Reset Extruder
+G1 Z40.0 F3000 ; Move Z Axis up little to prevent scratching of Heat Bed
 
-M82 ;absolute extrusion mode
 G92 E0
-G1 F2700
-;LAYER_COUNT:5
-;LAYER:0
-;MESH:Untitled.stl
-;TYPE:WALL-INNER
 G1 F2000 E0
 G0 F4000 E0
 `
@@ -35,12 +26,8 @@ var gCodeSuffix string = `
 G1 Z40.0 ;Raise Z
 
 M140 S0
-; LONGER End G-code
-G91 ;Relative positioning
-G1 X5 Y5 F3000 ;Wipe out
 G1 Z40.0 ;Raise Z more
-G90 ;Absolute positioning
-; G1 X0 Y300 ;Present print
+G1 X0 Y300 ;Present print
 M84 X Y E ;Disable all steppers but Z
 `
 
@@ -58,5 +45,6 @@ func PlotterConfigLongerLK5ProDefault() *PlotterConfig {
 	p.RetractHeight = 23.0
 	p.DrawSpeed = 2000.0
 	p.RetractSpeed = 4000.0
+	p.RemoveComments = true
 	return p
 }

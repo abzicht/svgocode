@@ -24,6 +24,8 @@ type PlotterConfig struct {
 	RetractHeight math64.Float `yaml:"retract-height"`
 	DrawSpeed     math64.Speed `yaml:"draw-speed"`
 	RetractSpeed  math64.Speed `yaml:"retract-speed"`
+	// RemoveComments: Strip produced gcode from all comments
+	RemoveComments bool `yaml:"remove-comments"`
 }
 
 // Read a PlotterConfig struct from a reader in YAML-format and return it.

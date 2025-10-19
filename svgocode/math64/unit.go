@@ -36,8 +36,8 @@ var unitMatcher *regexp.Regexp = regexp.MustCompile(`^([0-9]*\.?[0-9]+)([a-zA-Z%
 // Given an input string such as "32mm", determine its value and unit
 func NumberUnit(s string) (Float, UnitType) {
 	// Regex explanation:
-	// ^([0-9]*\.?[0-9]+)   → captures an integer or decimal number
-	// ([a-zA-Z%µ]+)$       → captures the unit (letters, %, µ, etc.)
+	// ^([0-9]*\.?[0-9]+)   -> captures an integer or decimal number
+	// ([a-zA-Z%µ]+)$       -> captures the unit (letters, %, µ, etc.)
 
 	matches := unitMatcher.FindStringSubmatch(s)
 	if len(matches) != 3 {

@@ -1,6 +1,8 @@
 package gcode
 
 import (
+	"math"
+	"regexp"
 	"slices"
 	"strings"
 
@@ -9,6 +11,16 @@ import (
 	"github.com/abzicht/svgocode/svgocode/plotter"
 )
 
+// Match all lines that start with a comment
+var reLineComment = regexp.MustCompile("^\\s*;(.*)$")
+
+// Match all lines that contain a comment
+var reComment = regexp.MustCompile("^.*;(.*)$")
+
+// Match all lines that contain an instruction
+var reInstruction = regexp.MustCompile("^\\s*([GMTgmt][\\d]+[^;]*)")
+
+// Pure code
 type Code struct {
 	lines []string
 }
@@ -22,6 +34,41 @@ func (c *Code) Copy() *Code {
 	c2.lines = slices.Clone(c.lines)
 	return c2
 }
+
+func (c *Code) NumInstructions() int {
+	counter := 0
+	for _, line := range c.lines {
+		if reInstruction.MatchString(line) {
+			counter += 1
+		}
+	}
+	return counter
+}
+
+func (c *Code) NumComments() int {
+	counter := 0
+	for _, line := range c.lines {
+		if reComment.MatchString(line) {
+			counter += 1
+		}
+	}
+	return counter
+}
+
+func (c *Code) RemoveComments() *Code {
+	c2 := NewCode()
+	for _, line := range c.lines {
+		if reLineComment.MatchString(line) {
+			continue
+		}
+		if reComment.MatchString(line) {
+			line = reInstruction.FindString(line)
+		}
+		c2.AppendLines(line)
+	}
+	return c2
+}
+
 func (c *Code) String() string {
 	return strings.Join(c.lines, "\n") + "\n"
 }
@@ -34,24 +81,20 @@ func (c *Code) Append(c2 *Code) {
 	c.AppendLines(c2.lines...)
 }
 
+// Gcode, also holds auxiliary information.
 type Gcode struct {
-	Code       *Code
-	StartCoord math64.VectorF3
-	EndCoord   math64.VectorF3
-	BoundsMin  math64.VectorF3
-	BoundsMax  math64.VectorF3
+	Code       *Code           // The actual gcode.
+	StartCoord math64.VectorF3 // Start coordinates of the given Gcode (if known)
+	EndCoord   math64.VectorF3 // End coordinates of the given Gcode (if known)
+	BoundsMin  math64.VectorF3 // Minimum coordinates used in Gcode (if known)
+	BoundsMax  math64.VectorF3 // Maximum coordinates used in Gcode (if known)
 }
 
 func NewGcode() *Gcode {
 	g := new(Gcode)
+	g.BoundsMin = math64.VectorF3{X: math.MaxFloat64, Y: math.MaxFloat64, Z: math.MaxFloat64}
+	// better hope that BoundsMin will be overwritten
 	g.Code = NewCode()
-	return g
-}
-
-// Create a new gcode object from the given code.
-func NewGcodeFromString(code string) *Gcode {
-	g := NewGcode()
-	g.AppendCode(code)
 	return g
 }
 
@@ -85,30 +128,6 @@ func (g *Gcode) AppendCode(code string) {
 	g.Code.AppendLines(lines...)
 }
 
-// Join two gcodes, merging their boundaries, start/end corrdinates, and code.
-func (g *Gcode) AppendSimple(g2 *Gcode) {
-	g.EndCoord = g2.EndCoord
-	if g.BoundsMin.X > g2.BoundsMin.X {
-		g.BoundsMin.X = g2.BoundsMin.X
-	}
-	if g.BoundsMin.Y > g2.BoundsMin.Y {
-		g.BoundsMin.Y = g2.BoundsMin.Y
-	}
-	if g.BoundsMin.Z > g2.BoundsMin.Z {
-		g.BoundsMin.Z = g2.BoundsMin.Z
-	}
-	if g.BoundsMax.X < g2.BoundsMax.X {
-		g.BoundsMax.X = g2.BoundsMax.X
-	}
-	if g.BoundsMax.Y < g2.BoundsMax.Y {
-		g.BoundsMax.Y = g2.BoundsMax.Y
-	}
-	if g.BoundsMax.Z < g2.BoundsMax.Z {
-		g.BoundsMax.Z = g2.BoundsMax.Z
-	}
-	g.Code.Append(g2.Code)
-}
-
 // Join two gcodes, merging their boundaries, start/end coordinates, and code.
 // Adds Retract command in-between both codes, if they end/start at different
 // positions.
@@ -121,6 +140,8 @@ func (g *Gcode) Append(g2 *Gcode, plotterConf *plotter.PlotterConfig) {
 		ins.Move(g, g2StartRetracted, plotterConf.RetractSpeed)
 	}
 	g.EndCoord = g2.EndCoord
+	g.BoundsMin = g.BoundsMin.Min(g2.BoundsMin)
+	g.BoundsMax = g.BoundsMax.Max(g2.BoundsMax)
 	g.Code.Append(g2.Code)
 }
 
@@ -132,37 +153,5 @@ func Join(gcodes []*Gcode, plotterConf *plotter.PlotterConfig) *Gcode {
 	for _, g2 := range gcodes[1:] {
 		g.Append(g2, plotterConf)
 	}
-	return g
-}
-
-// Create gcode, based on the given prefix and an initialization towards the
-// start coordinates of the first segment
-func NewGcodePrefix(plotterConf *plotter.PlotterConfig, firstSegment *Gcode) *Gcode {
-	ins := NewIns(plotterConf)
-	g := NewGcodeFromString(plotterConf.GcodePrefix)
-	g.AppendCode("--- SVGOCODE START ---")
-	target := math64.VectorF3{X: firstSegment.StartCoord.X, Y: firstSegment.StartCoord.Y, Z: plotterConf.RetractHeight}
-	g.AppendCode("; Moving to start position of first segment")
-	ins.Move(g, target, plotterConf.RetractSpeed)
-	g.StartCoord = target
-	g.EndCoord = target
-	g.BoundsMin = target
-	g.BoundsMax = target
-	return g
-}
-
-// Create gcode, based on the given suffix and a retract operation beforehand
-func NewGcodeSuffix(plotterConf *plotter.PlotterConfig, lastSegment *Gcode) *Gcode {
-	ins := NewIns(plotterConf)
-	g := NewGcode()
-	target := math64.VectorF3{X: lastSegment.EndCoord.X, Y: lastSegment.EndCoord.Y, Z: plotterConf.RetractHeight}
-	g.AppendCode("; SVGOCODE finished, retracting")
-	ins.Move(g, target, plotterConf.RetractSpeed)
-	g.AppendCode("; --- SVGOCODE END ---")
-	g.StartCoord = target
-	g.EndCoord = target
-	g.BoundsMin = target
-	g.BoundsMax = target
-	g.AppendCode(plotterConf.GcodeSuffix)
 	return g
 }

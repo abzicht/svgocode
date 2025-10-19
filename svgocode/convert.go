@@ -5,6 +5,7 @@ import (
 	"github.com/abzicht/svgocode/llog"
 	"github.com/abzicht/svgocode/svgocode/convs"
 	"github.com/abzicht/svgocode/svgocode/gcode"
+	"github.com/abzicht/svgocode/svgocode/math64"
 	"github.com/abzicht/svgocode/svgocode/ordering"
 	"github.com/abzicht/svgocode/svgocode/plotter"
 	"github.com/abzicht/svgocode/svgocode/svg"
@@ -37,9 +38,52 @@ func Svg2Gcode(s *svg.SVG, plotterConf *plotter.PlotterConfig, conv convs.Conver
 		llog.Warn("No gcode produced\n")
 		return gcode.NewGcode()
 	}
-	gcodes = append([]*gcode.Gcode{gcode.NewGcodePrefix(plotterConf, gcodes[0])}, gcodes...)
-	gcodes = append(gcodes, gcode.NewGcodeSuffix(plotterConf, gcodes[len(gcodes)-1]))
+	// Join all instructions
+	gcode_joined := gcode.Join(gcodes, plotterConf)
 
-	// And join them together
-	return gcode.Join(gcodes, plotterConf)
+	// Add statistics, prefix, and suffix
+	gcode_full := GcodeAddStatistics(gcode.Join([]*gcode.Gcode{
+		NewGcodePrefix(plotterConf, gcode_joined),
+		gcode_joined,
+		NewGcodeSuffix(plotterConf, gcode_joined),
+	}, plotterConf), plotterConf)
+	// Remove comments, if they are not desired
+	if plotterConf.RemoveComments {
+		gcode_full.Code = gcode_full.Code.RemoveComments()
+	}
+	return gcode_full
+}
+
+// Create gcode for the plotter's gcode prefix
+func NewGcodePrefix(plotterConf *plotter.PlotterConfig, body *gcode.Gcode) *gcode.Gcode {
+	ins := gcode.NewIns(plotterConf)
+	g := body.CopyMeta()
+	g.AppendCode(plotterConf.GcodePrefix)
+	ins.AddComment(g, "--- SVGOCODE START ---")
+	ins.SetExtrusion(g, 0, true)
+	ins.SetExtrusion(g, 0, false)
+	ins.SetSpeed(g, plotterConf.RetractSpeed, false)
+	ins.SetSpeed(g, plotterConf.DrawSpeed, true)
+	target := math64.VectorF3{X: body.StartCoord.X, Y: body.StartCoord.Y, Z: plotterConf.RetractHeight}
+	ins.AddComment(g, "Moving to start position of first segment")
+	ins.Move(g, target, plotterConf.RetractSpeed)
+	g.StartCoord = target
+	g.EndCoord = target
+	g.BoundsMin = target
+	g.BoundsMax = target
+	return g
+}
+
+// Create gcode for the plotter's gcode suffix, based on the given gcode body
+func NewGcodeSuffix(plotterConf *plotter.PlotterConfig, body *gcode.Gcode) *gcode.Gcode {
+	ins := gcode.NewIns(plotterConf)
+	g := gcode.NewGcode()
+	g.StartCoord = body.EndCoord
+	g.BoundsMin = body.EndCoord
+	g.BoundsMax = body.EndCoord
+	ins.AddComment(g, "SVGOCODE finished, retracting")
+	ins.Retract(g)
+	ins.AddComment(g, "--- SVGOCODE END ---")
+	g.AppendCode(plotterConf.GcodeSuffix)
+	return g
 }
