@@ -1,4 +1,4 @@
-package path
+package svg
 
 import (
 	"errors"
@@ -8,16 +8,12 @@ import (
 	"unicode"
 )
 
-// God dammit, this code was produced by passing the SVG path ENBF grammar to
-// AI.
-// Not fully revised yet, but will do.
+// SVG Path command parser.
 
-// -------- AST types --------
-
-type CommandType int
+type PathCommandType int
 
 const (
-	CmdMoveTo CommandType = iota
+	CmdMoveTo PathCommandType = iota
 	CmdClosePath
 	CmdLineTo
 	CmdHLineTo
@@ -29,7 +25,7 @@ const (
 	CmdEllipticalArc
 )
 
-func (c CommandType) String() string {
+func (c PathCommandType) String() string {
 	return [...]string{
 		"MoveTo", "ClosePath", "LineTo", "HLineTo", "VLineTo",
 		"CurveTo", "SmoothCurveTo", "QuadraticBezierTo",
@@ -37,7 +33,7 @@ func (c CommandType) String() string {
 	}[c]
 }
 
-type Point struct {
+type PathPoint struct {
 	X float64
 	Y float64
 }
@@ -48,23 +44,23 @@ type EllipticalArcArg struct {
 	XAxis float64 // x-axis rotation
 	Large int     // flag 0/1
 	Sweep int     // flag 0/1
-	To    Point
+	To    PathPoint
 }
 
-type Command struct {
-	Type        CommandType
+type PathCommand struct {
+	Type        PathCommandType
 	Relative    bool
-	Points      []Point   // used for moveto/lineto/curveto combos
-	Coordinates []float64 // used for H/V coordinates (list of floats)
+	PathPoints  []PathPoint // used for moveto/lineto/curveto combos
+	Coordinates []float64   // used for H/V coordinates (list of floats)
 	ArcArgs     []EllipticalArcArg
 }
 
-func (c Command) String() string {
+func (c PathCommand) String() string {
 	var b strings.Builder
 	fmt.Fprintf(&b, "%s (relative=%v): ", c.Type, c.Relative)
 	switch c.Type {
 	case CmdMoveTo, CmdLineTo, CmdCurveTo, CmdSmoothCurveTo, CmdQuadraticBezierTo, CmdSmoothQuadraticBezierTo:
-		fmt.Fprintf(&b, "Points=%v", c.Points)
+		fmt.Fprintf(&b, "PathPoints=%v", c.PathPoints)
 	case CmdHLineTo, CmdVLineTo:
 		fmt.Fprintf(&b, "Coords=%v", c.Coordinates)
 	case CmdEllipticalArc:
@@ -72,7 +68,7 @@ func (c Command) String() string {
 	case CmdClosePath:
 		// nothing more
 	default:
-		fmt.Fprintf(&b, "Points=%v", c.Points)
+		fmt.Fprintf(&b, "PathPoints=%v", c.PathPoints)
 	}
 	return b.String()
 }
@@ -296,22 +292,22 @@ func (p *parser) parseCoordinate() (float64, error) {
 }
 
 // coordinate_pair ::= coordinate comma_wsp? coordinate
-func (p *parser) parseCoordinatePair() (Point, error) {
+func (p *parser) parseCoordinatePair() (PathPoint, error) {
 	x, err := p.parseCoordinate()
 	if err != nil {
-		return Point{}, err
+		return PathPoint{}, err
 	}
 	p.consumeCommaWspOptional()
 	y, err := p.parseCoordinate()
 	if err != nil {
-		return Point{}, err
+		return PathPoint{}, err
 	}
-	return Point{X: x, Y: y}, nil
+	return PathPoint{X: x, Y: y}, nil
 }
 
 // coordinate_pair_sequence ::= coordinate_pair | (coordinate_pair comma_wsp? coordinate_pair_sequence)
-func (p *parser) parseCoordinatePairSequence() ([]Point, error) {
-	var pts []Point
+func (p *parser) parseCoordinatePairSequence() ([]PathPoint, error) {
+	var pts []PathPoint
 	pt, err := p.parseCoordinatePair()
 	if err != nil {
 		return nil, err
@@ -377,8 +373,8 @@ func (p *parser) parseCoordinateSequence() ([]float64, error) {
 
 // curveto_coordinate_sequence: sequence of coordinate_pair_triplet
 // coordinate_pair_triplet ::= coordinate_pair comma_wsp? coordinate_pair comma_wsp? coordinate_pair
-func (p *parser) parseCoordinatePairTriplet() ([]Point, error) {
-	var pts []Point
+func (p *parser) parseCoordinatePairTriplet() ([]PathPoint, error) {
+	var pts []PathPoint
 	for j := 0; j < 3; j++ {
 		pt, err := p.parseCoordinatePair()
 		if err != nil {
@@ -392,13 +388,13 @@ func (p *parser) parseCoordinatePairTriplet() ([]Point, error) {
 	return pts, nil
 }
 
-func (p *parser) parseCurvetoCoordinateSequence() ([][]Point, error) {
+func (p *parser) parseCurvetoCoordinateSequence() ([][]PathPoint, error) {
 	// one or more triplets
 	first, err := p.parseCoordinatePairTriplet()
 	if err != nil {
 		return nil, err
 	}
-	result := [][]Point{first}
+	result := [][]PathPoint{first}
 	for {
 		before := p.i
 		p.consumeCommaWspOptional()
@@ -423,8 +419,8 @@ func (p *parser) parseCurvetoCoordinateSequence() ([][]Point, error) {
 }
 
 // coordinate_pair_double ::= coordinate_pair comma_wsp? coordinate_pair
-func (p *parser) parseCoordinatePairDouble() ([]Point, error) {
-	var pts []Point
+func (p *parser) parseCoordinatePairDouble() ([]PathPoint, error) {
+	var pts []PathPoint
 	for j := 0; j < 2; j++ {
 		pt, err := p.parseCoordinatePair()
 		if err != nil {
@@ -438,12 +434,12 @@ func (p *parser) parseCoordinatePairDouble() ([]Point, error) {
 	return pts, nil
 }
 
-func (p *parser) parseSmoothCurvetoCoordinateSequence() ([][]Point, error) {
+func (p *parser) parseSmoothCurvetoCoordinateSequence() ([][]PathPoint, error) {
 	first, err := p.parseCoordinatePairDouble()
 	if err != nil {
 		return nil, err
 	}
-	res := [][]Point{first}
+	res := [][]PathPoint{first}
 	for {
 		before := p.i
 		p.consumeCommaWspOptional()
@@ -466,7 +462,7 @@ func (p *parser) parseSmoothCurvetoCoordinateSequence() ([][]Point, error) {
 	return res, nil
 }
 
-func (p *parser) parseQuadraticBezierCoordinateSequence() ([][]Point, error) {
+func (p *parser) parseQuadraticBezierCoordinateSequence() ([][]PathPoint, error) {
 	// similar to smooth curveto: two pairs per element
 	return p.parseSmoothCurvetoCoordinateSequence()
 }
@@ -542,51 +538,7 @@ func (p *parser) parseEllipticalArcArgumentSequence() ([]EllipticalArcArg, error
 	return args, nil
 }
 
-// -------- Top-level parsing according to grammar --------
-
-func ParseSVGPath(s string) ([]Command, error) {
-	p := newParser(s)
-	cmds := []Command{}
-	// // wsp*
-	// p.skipWsp()
-
-	// // optional moveto?
-	// if p.eof() {
-	// 	return cmds, nil
-	// }
-	// // if next is moveto (M/m)
-	// if ch := p.peek(); ch == 'M' || ch == 'm' {
-	// 	moveCmds, err := p.parseMoveto()
-	// 	if err != nil {
-	// 		return nil, err
-	// 	}
-	// 	cmds = append(cmds, moveCmds...)
-	// }
-
-	// (moveto drawto_command*)?  The EBNF allows an optional outer moveto followed by drawto commands.
-	// But drawto_command itself can also include moveto. We'll parse remaining commands until EOF.
-	for {
-		p.skipWsp()
-		if p.eof() {
-			break
-		}
-		ch := p.peek()
-		// Commands are letters among: Mm Zz L l H h V v C c S s Q q T t A a
-		if !isCommandLetter(ch) {
-			// If unexpected char, try to skip whitespace/comma_wsp; otherwise error
-			return nil, fmt.Errorf("unexpected char %q at pos %d", ch, p.i)
-		}
-		// parse the next drawto_command (which may be moveto again)
-		subCmds, err := p.parseDrawtoCommand()
-		if err != nil {
-			return nil, err
-		}
-		cmds = append(cmds, subCmds...)
-	}
-	return cmds, nil
-}
-
-func isCommandLetter(r rune) bool {
+func isPathCommandLetter(r rune) bool {
 	switch r {
 	case 'M', 'm', 'Z', 'z', 'L', 'l', 'H', 'h', 'V', 'v', 'C', 'c', 'S', 's', 'Q', 'q', 'T', 't', 'A', 'a':
 		return true
@@ -595,7 +547,7 @@ func isCommandLetter(r rune) bool {
 	}
 }
 
-func (p *parser) parseDrawtoCommand() ([]Command, error) {
+func (p *parser) parseDrawtoPathCommand() ([]PathCommand, error) {
 	// drawto_command can be moveto | closepath | lineto | hline | vline | curveto | smoothcurveto | quadratic | smoothquadratic | elliptical_arc
 	// Just detect letter and dispatch.
 	if p.eof() {
@@ -607,7 +559,7 @@ func (p *parser) parseDrawtoCommand() ([]Command, error) {
 		return p.parseMoveto()
 	case 'Z', 'z':
 		p.next()
-		return []Command{{Type: CmdClosePath, Relative: unicode.IsLower(ch)}}, nil
+		return []PathCommand{{Type: CmdClosePath, Relative: unicode.IsLower(ch)}}, nil
 	case 'L', 'l':
 		return p.parseLineto()
 	case 'H', 'h':
@@ -629,7 +581,7 @@ func (p *parser) parseDrawtoCommand() ([]Command, error) {
 	}
 }
 
-func (p *parser) parseMoveto() ([]Command, error) {
+func (p *parser) parseMoveto() ([]PathCommand, error) {
 	// ("M" | "m") wsp* coordinate_pair_sequence
 	ch := p.next()
 	rel := unicode.IsLower(ch)
@@ -639,25 +591,25 @@ func (p *parser) parseMoveto() ([]Command, error) {
 		return nil, fmt.Errorf("moveto: %w", err)
 	}
 	// According to SVG: moveto with multiple coordinate pairs: first is MoveTo, the rest are implicit LineTo
-	cmds := []Command{}
+	cmds := []PathCommand{}
 	if len(points) >= 1 {
-		cmds = append(cmds, Command{
-			Type:     CmdMoveTo,
-			Relative: rel,
-			Points:   []Point{points[0]},
+		cmds = append(cmds, PathCommand{
+			Type:       CmdMoveTo,
+			Relative:   rel,
+			PathPoints: []PathPoint{points[0]},
 		})
 		for j := 1; j < len(points); j++ {
-			cmds = append(cmds, Command{
-				Type:     CmdLineTo,
-				Relative: rel,
-				Points:   []Point{points[j]},
+			cmds = append(cmds, PathCommand{
+				Type:       CmdLineTo,
+				Relative:   rel,
+				PathPoints: []PathPoint{points[j]},
 			})
 		}
 	}
 	return cmds, nil
 }
 
-func (p *parser) parseLineto() ([]Command, error) {
+func (p *parser) parseLineto() ([]PathCommand, error) {
 	// ("L"|"l") wsp* coordinate_pair_sequence
 	ch := p.next()
 	rel := unicode.IsLower(ch)
@@ -666,18 +618,18 @@ func (p *parser) parseLineto() ([]Command, error) {
 	if err != nil {
 		return nil, fmt.Errorf("lineto: %w", err)
 	}
-	cmds := []Command{}
+	cmds := []PathCommand{}
 	for _, pt := range points {
-		cmds = append(cmds, Command{
-			Type:     CmdLineTo,
-			Relative: rel,
-			Points:   []Point{pt},
+		cmds = append(cmds, PathCommand{
+			Type:       CmdLineTo,
+			Relative:   rel,
+			PathPoints: []PathPoint{pt},
 		})
 	}
 	return cmds, nil
 }
 
-func (p *parser) parseHorizontalLineto() ([]Command, error) {
+func (p *parser) parseHorizontalLineto() ([]PathCommand, error) {
 	// ("H"|"h") wsp* coordinate_sequence
 	ch := p.next()
 	rel := unicode.IsLower(ch)
@@ -686,10 +638,10 @@ func (p *parser) parseHorizontalLineto() ([]Command, error) {
 	if err != nil {
 		return nil, fmt.Errorf("horizontal_lineto: %w", err)
 	}
-	return []Command{{Type: CmdHLineTo, Relative: rel, Coordinates: coords}}, nil
+	return []PathCommand{{Type: CmdHLineTo, Relative: rel, Coordinates: coords}}, nil
 }
 
-func (p *parser) parseVerticalLineto() ([]Command, error) {
+func (p *parser) parseVerticalLineto() ([]PathCommand, error) {
 	// ("V"|"v") wsp* coordinate_sequence
 	ch := p.next()
 	rel := unicode.IsLower(ch)
@@ -698,10 +650,10 @@ func (p *parser) parseVerticalLineto() ([]Command, error) {
 	if err != nil {
 		return nil, fmt.Errorf("vertical_lineto: %w", err)
 	}
-	return []Command{{Type: CmdVLineTo, Relative: rel, Coordinates: coords}}, nil
+	return []PathCommand{{Type: CmdVLineTo, Relative: rel, Coordinates: coords}}, nil
 }
 
-func (p *parser) parseCurveto() ([]Command, error) {
+func (p *parser) parseCurveto() ([]PathCommand, error) {
 	// ("C"|"c") wsp* curveto_coordinate_sequence
 	ch := p.next()
 	rel := unicode.IsLower(ch)
@@ -710,15 +662,15 @@ func (p *parser) parseCurveto() ([]Command, error) {
 	if err != nil {
 		return nil, fmt.Errorf("curveto: %w", err)
 	}
-	cmds := []Command{}
+	cmds := []PathCommand{}
 	for _, trip := range trips {
 		// trip is 3 points (control1, control2, end)
-		cmds = append(cmds, Command{Type: CmdCurveTo, Relative: rel, Points: trip})
+		cmds = append(cmds, PathCommand{Type: CmdCurveTo, Relative: rel, PathPoints: trip})
 	}
 	return cmds, nil
 }
 
-func (p *parser) parseSmoothCurveto() ([]Command, error) {
+func (p *parser) parseSmoothCurveto() ([]PathCommand, error) {
 	// ("S"|"s") wsp* smooth_curveto_coordinate_sequence
 	ch := p.next()
 	rel := unicode.IsLower(ch)
@@ -727,15 +679,15 @@ func (p *parser) parseSmoothCurveto() ([]Command, error) {
 	if err != nil {
 		return nil, fmt.Errorf("smooth_curveto: %w", err)
 	}
-	cmds := []Command{}
+	cmds := []PathCommand{}
 	for _, dbl := range seq {
 		// each dbl is 2 points (control2, end)
-		cmds = append(cmds, Command{Type: CmdSmoothCurveTo, Relative: rel, Points: dbl})
+		cmds = append(cmds, PathCommand{Type: CmdSmoothCurveTo, Relative: rel, PathPoints: dbl})
 	}
 	return cmds, nil
 }
 
-func (p *parser) parseQuadraticBezierCurveto() ([]Command, error) {
+func (p *parser) parseQuadraticBezierCurveto() ([]PathCommand, error) {
 	// ("Q"|"q") wsp* quadratic_bezier_curveto_coordinate_sequence
 	ch := p.next()
 	rel := unicode.IsLower(ch)
@@ -744,15 +696,15 @@ func (p *parser) parseQuadraticBezierCurveto() ([]Command, error) {
 	if err != nil {
 		return nil, fmt.Errorf("quadratic_bezier_curveto: %w", err)
 	}
-	cmds := []Command{}
+	cmds := []PathCommand{}
 	for _, dbl := range seq {
 		// dbl: 2 points (control, end)
-		cmds = append(cmds, Command{Type: CmdQuadraticBezierTo, Relative: rel, Points: dbl})
+		cmds = append(cmds, PathCommand{Type: CmdQuadraticBezierTo, Relative: rel, PathPoints: dbl})
 	}
 	return cmds, nil
 }
 
-func (p *parser) parseSmoothQuadraticBezierCurveto() ([]Command, error) {
+func (p *parser) parseSmoothQuadraticBezierCurveto() ([]PathCommand, error) {
 	// ("T"|"t") wsp* coordinate_pair_sequence
 	ch := p.next()
 	rel := unicode.IsLower(ch)
@@ -761,14 +713,14 @@ func (p *parser) parseSmoothQuadraticBezierCurveto() ([]Command, error) {
 	if err != nil {
 		return nil, fmt.Errorf("smooth_quadratic_bezier_curveto: %w", err)
 	}
-	cmds := []Command{}
+	cmds := []PathCommand{}
 	for _, pt := range points {
-		cmds = append(cmds, Command{Type: CmdSmoothQuadraticBezierTo, Relative: rel, Points: []Point{pt}})
+		cmds = append(cmds, PathCommand{Type: CmdSmoothQuadraticBezierTo, Relative: rel, PathPoints: []PathPoint{pt}})
 	}
 	return cmds, nil
 }
 
-func (p *parser) parseEllipticalArc() ([]Command, error) {
+func (p *parser) parseEllipticalArc() ([]PathCommand, error) {
 	// ( "A" | "a" ) wsp* elliptical_arc_argument_sequence
 	ch := p.next()
 	rel := unicode.IsLower(ch)
@@ -777,9 +729,34 @@ func (p *parser) parseEllipticalArc() ([]Command, error) {
 	if err != nil {
 		return nil, fmt.Errorf("elliptical_arc: %w", err)
 	}
-	cmds := []Command{}
+	cmds := []PathCommand{}
 	for _, a := range args {
-		cmds = append(cmds, Command{Type: CmdEllipticalArc, Relative: rel, ArcArgs: []EllipticalArcArg{a}})
+		cmds = append(cmds, PathCommand{Type: CmdEllipticalArc, Relative: rel, ArcArgs: []EllipticalArcArg{a}})
+	}
+	return cmds, nil
+}
+
+func ParseSVGPath(s string) ([]PathCommand, error) {
+	p := newParser(s)
+	cmds := []PathCommand{}
+
+	for {
+		p.skipWsp()
+		if p.eof() {
+			break
+		}
+		ch := p.peek()
+		// PathCommands are letters among: Mm Zz L l H h V v C c S s Q q T t A a
+		if !isPathCommandLetter(ch) {
+			// If unexpected char, try to skip whitespace/comma_wsp; otherwise error
+			return nil, fmt.Errorf("unexpected char %q at pos %d", ch, p.i)
+		}
+		// parse the next drawto_command (which may be moveto again)
+		subCmds, err := p.parseDrawtoPathCommand()
+		if err != nil {
+			return nil, err
+		}
+		cmds = append(cmds, subCmds...)
 	}
 	return cmds, nil
 }

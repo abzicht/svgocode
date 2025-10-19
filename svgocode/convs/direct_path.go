@@ -1,4 +1,4 @@
-package path
+package convs
 
 import (
 	"fmt"
@@ -9,12 +9,13 @@ import (
 	"github.com/abzicht/svgocode/svgocode/gcode"
 	"github.com/abzicht/svgocode/svgocode/math64"
 	"github.com/abzicht/svgocode/svgocode/plotter"
+	"github.com/abzicht/svgocode/svgocode/svg"
 )
 
 // This code was also produced by AI. Explain that to a Victorian peasant.
 // Not fully revised yet, but will do.
 
-func PathCommandsToGcode(commands []Command, g *gcode.Gcode, plotterConf *plotter.PlotterConfig) *gcode.Gcode {
+func PathCommandsToGcode(commands []svg.PathCommand, g *gcode.Gcode, plotterConf *plotter.PlotterConfig) *gcode.Gcode {
 	//TODO add gcode bounds
 	var b strings.Builder
 
@@ -24,8 +25,8 @@ func PathCommandsToGcode(commands []Command, g *gcode.Gcode, plotterConf *plotte
 		steps = 20.0                      // number of line segments to approximate curves
 	)
 
-	current := Point{0, 0}
-	start := Point{0, 0}
+	current := svg.PathPoint{X: 0, Y: 0}
+	start := svg.PathPoint{X: 0, Y: 0}
 	penDown := false
 
 	// Header
@@ -36,38 +37,38 @@ func PathCommandsToGcode(commands []Command, g *gcode.Gcode, plotterConf *plotte
 	}
 	for _, cmd := range commands {
 		switch cmd.Type {
-		case CmdMoveTo:
+		case svg.CmdMoveTo:
 			if penDown {
 				fmt.Fprintf(&b, "G0 Z%.3f\n", zUp)
 				penDown = false
 			}
-			for _, p := range cmd.Points {
+			for _, p := range cmd.PathPoints {
 				x, y := p.X, p.Y
 				if cmd.Relative {
 					x += current.X
 					y += current.Y
 				}
 				fmt.Fprintf(&b, "G0 X%.3f Y%.3f\n", x, y)
-				current = Point{x, y}
+				current = svg.PathPoint{X: x, Y: y}
 				start = current
 			}
 
-		case CmdLineTo:
+		case svg.CmdLineTo:
 			if !penDown {
 				fmt.Fprintf(&b, "G1 Z%.3f\n", zDown)
 				penDown = true
 			}
-			for _, p := range cmd.Points {
+			for _, p := range cmd.PathPoints {
 				x, y := p.X, p.Y
 				if cmd.Relative {
 					x += current.X
 					y += current.Y
 				}
 				fmt.Fprintf(&b, "G1 X%.3f Y%.3f\n", x, y)
-				current = Point{x, y}
+				current = svg.PathPoint{X: x, Y: y}
 			}
 
-		case CmdHLineTo:
+		case svg.CmdHLineTo:
 			if !penDown {
 				fmt.Fprintf(&b, "G1 Z%.3f\n", zDown)
 				penDown = true
@@ -81,7 +82,7 @@ func PathCommandsToGcode(commands []Command, g *gcode.Gcode, plotterConf *plotte
 				current.X = x
 			}
 
-		case CmdVLineTo:
+		case svg.CmdVLineTo:
 			if !penDown {
 				fmt.Fprintf(&b, "G1 Z%.3f\n", zDown)
 				penDown = true
@@ -95,15 +96,15 @@ func PathCommandsToGcode(commands []Command, g *gcode.Gcode, plotterConf *plotte
 				current.Y = y
 			}
 
-		case CmdCurveTo, CmdSmoothCurveTo: // Cubic Bézier curves
+		case svg.CmdCurveTo, svg.CmdSmoothCurveTo: // Cubic Bézier curves
 			if !penDown {
 				fmt.Fprintf(&b, "G1 Z%.3f\n", zDown)
 				penDown = true
 			}
-			for i := 0; i+2 < len(cmd.Points); i += 3 {
-				p1 := cmd.Points[i]
-				p2 := cmd.Points[i+1]
-				p3 := cmd.Points[i+2]
+			for i := 0; i+2 < len(cmd.PathPoints); i += 3 {
+				p1 := cmd.PathPoints[i]
+				p2 := cmd.PathPoints[i+1]
+				p3 := cmd.PathPoints[i+2]
 				if cmd.Relative {
 					p1.X += current.X
 					p1.Y += current.Y
@@ -120,14 +121,14 @@ func PathCommandsToGcode(commands []Command, g *gcode.Gcode, plotterConf *plotte
 				current = p3
 			}
 
-		case CmdQuadraticBezierTo, CmdSmoothQuadraticBezierTo: // Quadratic Bézier
+		case svg.CmdQuadraticBezierTo, svg.CmdSmoothQuadraticBezierTo: // Quadratic Bézier
 			if !penDown {
 				fmt.Fprintf(&b, "G1 Z%.3f\n", zDown)
 				penDown = true
 			}
-			for i := 0; i+1 < len(cmd.Points); i += 2 {
-				p1 := cmd.Points[i]
-				p2 := cmd.Points[i+1]
+			for i := 0; i+1 < len(cmd.PathPoints); i += 2 {
+				p1 := cmd.PathPoints[i]
+				p2 := cmd.PathPoints[i+1]
 				if cmd.Relative {
 					p1.X += current.X
 					p1.Y += current.Y
@@ -142,7 +143,7 @@ func PathCommandsToGcode(commands []Command, g *gcode.Gcode, plotterConf *plotte
 				current = p2
 			}
 
-		case CmdEllipticalArc: // Elliptical arc (approximated)
+		case svg.CmdEllipticalArc: // Elliptical arc (approximated)
 			if !penDown {
 				fmt.Fprintf(&b, "G1 Z%.3f\n", zDown)
 				penDown = true
@@ -157,7 +158,7 @@ func PathCommandsToGcode(commands []Command, g *gcode.Gcode, plotterConf *plotte
 				current = to
 			}
 
-		case CmdClosePath:
+		case svg.CmdClosePath:
 			if penDown {
 				fmt.Fprintf(&b, "G1 X%.3f Y%.3f\n", start.X, start.Y)
 				penDown = false
@@ -192,7 +193,7 @@ func quadraticBezier(t, p0, p1, p2 float64) float64 {
 }
 
 // Approximate elliptical arc with line segments
-func approximateArc(b *strings.Builder, from, to Point, a EllipticalArcArg, steps float64) {
+func approximateArc(b *strings.Builder, from, to svg.PathPoint, a svg.EllipticalArcArg, steps float64) {
 	// For simplicity: approximate as a simple ellipse arc from 'from' to 'to'
 	rx := float64(a.Rx)
 	ry := float64(a.Ry)
