@@ -38,6 +38,14 @@ func (v VectorF3) Equal(v2 VectorF3) bool {
 	return v.X == v2.X && v.Y == v2.Y && v.Z == v2.Z
 }
 
+func (v VectorF2) Add(v2 VectorF2) VectorF2 {
+	return VectorF2{X: v.X + v2.X, Y: v.Y + v2.Y}
+}
+
+func (v VectorF3) Add(v2 VectorF3) VectorF3 {
+	return VectorF3{X: v.X + v2.X, Y: v.Y + v2.Y, Z: v.Z + v2.Z}
+}
+
 func (v VectorF2) Min(v2 VectorF2) VectorF2 {
 	return VectorF2{X: v.X.Min(v2.X), Y: v.Y.Min(v2.Y)}
 }
