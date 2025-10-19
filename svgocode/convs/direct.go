@@ -5,6 +5,7 @@ import (
 
 	"github.com/abzicht/gogenericfunc/fun"
 	"github.com/abzicht/svgocode/llog"
+	"github.com/abzicht/svgocode/svgocode/convs/path"
 	"github.com/abzicht/svgocode/svgocode/gcode"
 	"github.com/abzicht/svgocode/svgocode/math64"
 	"github.com/abzicht/svgocode/svgocode/plotter"
@@ -38,6 +39,11 @@ func (d *Direct) Path(p *svg.Path) fun.Option[*gcode.Gcode] {
 	if len(p.D) == 0 {
 		return fun.NewNone[*gcode.Gcode]()
 	}
+	cmds, err := path.ParseSVGPath(p.D)
+	if err != nil {
+		llog.Panicf("Failed to parse SVG path (id %s): %s. path D: '%s'\n", p.Id, err.Error(), p.D)
+	}
+	g = path.PathCommandsToGcode(cmds, g, d.plotterConf)
 	return fun.NewSome[*gcode.Gcode](g)
 }
 func (d *Direct) Line(l *svg.Line) fun.Option[*gcode.Gcode] {

@@ -4,6 +4,7 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/abzicht/svgocode/llog"
 	"github.com/abzicht/svgocode/svgocode/math64"
 	"github.com/abzicht/svgocode/svgocode/plotter"
 )
@@ -124,8 +125,11 @@ func (g *Gcode) Append(g2 *Gcode, plotterConf *plotter.PlotterConfig) {
 }
 
 func Join(gcodes []*Gcode, plotterConf *plotter.PlotterConfig) *Gcode {
-	g := NewGcode()
-	for _, g2 := range gcodes {
+	if len(gcodes) == 0 {
+		llog.Panic("Cannot join gcode segments, provided list is empty")
+	}
+	g := gcodes[0].Copy()
+	for _, g2 := range gcodes[1:] {
 		g.Append(g2, plotterConf)
 	}
 	return g
@@ -159,6 +163,6 @@ func NewGcodeSuffix(plotterConf *plotter.PlotterConfig, lastSegment *Gcode) *Gco
 	g.EndCoord = target
 	g.BoundsMin = target
 	g.BoundsMax = target
-	g.AppendCode(plotterConf.GcodePrefix)
+	g.AppendCode(plotterConf.GcodeSuffix)
 	return g
 }

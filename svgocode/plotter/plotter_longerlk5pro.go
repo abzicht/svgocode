@@ -4,15 +4,6 @@ import "github.com/abzicht/svgocode/svgocode/math64"
 
 var gCodePrefix string = `
 ;FLAVOR:Marlin
-;TIME:1375
-;Filament used: 1.01345m
-;Layer height: 0.2
-;MINX:111.389
-;MINY:111.557
-;MINZ:0.2
-;MAXX:188.611
-;MAXY:188.443
-;MAXZ:1
 ;TARGET_MACHINE.NAME:LONGER LK5 Pro
 ;Generated with Cura_SteamEngine 5.10.0
 M106 S0 ;Turn-off fan
@@ -36,7 +27,8 @@ G1 F2700
 ;LAYER:0
 ;MESH:Untitled.stl
 ;TYPE:WALL-INNER
-G1 F2700 E0
+G1 F2000 E0
+G0 F4000 E0
 `
 
 var gCodeSuffix string = `
@@ -48,14 +40,8 @@ G91 ;Relative positioning
 G1 X5 Y5 F3000 ;Wipe out
 G1 Z40.0 ;Raise Z more
 G90 ;Absolute positioning
-G1 X0 Y300 ;Present print
-M106 S0 ;Turn-off fan
-M104 S0 ;Turn-off hotend
-M140 S0 ;Turn-off bed
+; G1 X0 Y300 ;Present print
 M84 X Y E ;Disable all steppers but Z
-
-M82 ;absolute extrusion mode
-M104 S0
 `
 
 // Return the default/recommended PlotterConfig for the 3D printer LONGER LK5 PRO
@@ -68,9 +54,9 @@ func PlotterConfigLongerLK5ProDefault() *PlotterConfig {
 		Min:    math64.VectorF3{X: 0, Y: 0, Z: 0},
 		Max:    math64.VectorF3{X: 300, Y: 300, Z: 200},
 	}
-	p.DrawHeight = 2.0
-	p.RetractHeight = 4.0
-	p.DrawSpeed = 70.0
-	p.RetractSpeed = 100.0
+	p.DrawHeight = 20.0
+	p.RetractHeight = 23.0
+	p.DrawSpeed = 2000.0
+	p.RetractSpeed = 4000.0
 	return p
 }
