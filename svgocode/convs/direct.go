@@ -98,6 +98,12 @@ func (d *Direct) Ellipse(e *svg.Ellipse) fun.Option[*gcode.Gcode] {
 func (d *Direct) Rect(r *svg.Rect) fun.Option[*gcode.Gcode] {
 	g := gcode.NewGcode()
 	d.addIdComment(g, "Rect", r.Id)
-	llog.Warn("Rect not implemented\n")
+	g.StartCoord = math64.VectorF3{X: r.X, Y: r.Y, Z: d.plotterConf.DrawHeight}
+	d.ins.Move(g, g.StartCoord, d.plotterConf.DrawSpeed)
+	d.ins.Draw(g, math64.VectorF2{X: r.X + r.Width, Y: r.Y})            // to the right
+	d.ins.Draw(g, math64.VectorF2{X: r.X + r.Width, Y: r.Y + r.Height}) // down
+	d.ins.Draw(g, math64.VectorF2{X: r.X, Y: r.Y + r.Height})           // to the left
+	d.ins.Draw(g, math64.VectorF2{X: r.X, Y: r.Y})                      // up
+	//TODO: Add RX/RY corners
 	return fun.NewSome[*gcode.Gcode](g)
 }

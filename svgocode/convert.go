@@ -13,8 +13,10 @@ import (
 
 // Convert an SVG object to gcode instructions
 func Svg2Gcode(s *svg.SVG, plotterConf *plotter.PlotterConfig, conv convs.ConverterI, order ordering.OrderingI) *gcode.Gcode {
+	runtConf := plotter.NewRuntimeConfig()
+	runtConf.SetUnitType(s.UserUnit())
+
 	var gcodes []*gcode.Gcode
-	s.UserUnit()
 	for svgElement := range svg.Seq(s) {
 		// First, convert the svg objects to individual gcode segments using the
 		// provided converter.
@@ -43,7 +45,7 @@ func Svg2Gcode(s *svg.SVG, plotterConf *plotter.PlotterConfig, conv convs.Conver
 
 	// Add statistics, prefix, and suffix
 	gcode_full := GcodeAddStatistics(gcode.Join([]*gcode.Gcode{
-		NewGcodePrefix(plotterConf, gcode_joined),
+		NewGcodePrefix(plotterConf, runtConf, gcode_joined),
 		gcode_joined,
 		NewGcodeSuffix(plotterConf, gcode_joined),
 	}, plotterConf), plotterConf)
@@ -55,11 +57,12 @@ func Svg2Gcode(s *svg.SVG, plotterConf *plotter.PlotterConfig, conv convs.Conver
 }
 
 // Create gcode for the plotter's gcode prefix
-func NewGcodePrefix(plotterConf *plotter.PlotterConfig, body *gcode.Gcode) *gcode.Gcode {
+func NewGcodePrefix(plotterConf *plotter.PlotterConfig, runtConf *plotter.RuntimeConfig, body *gcode.Gcode) *gcode.Gcode {
 	ins := gcode.NewIns(plotterConf)
 	g := body.CopyMeta()
 	g.AppendCode(plotterConf.GcodePrefix)
 	ins.AddComment(g, "--- SVGOCODE START ---")
+	ins.SetUnit(g, runtConf.UnitType)
 	ins.SetExtrusion(g, 0, true)
 	ins.SetExtrusion(g, 0, false)
 	ins.SetSpeed(g, plotterConf.RetractSpeed, false)
@@ -79,6 +82,7 @@ func NewGcodeSuffix(plotterConf *plotter.PlotterConfig, body *gcode.Gcode) *gcod
 	ins := gcode.NewIns(plotterConf)
 	g := gcode.NewGcode()
 	g.StartCoord = body.EndCoord
+	g.EndCoord = body.EndCoord
 	g.BoundsMin = body.EndCoord
 	g.BoundsMax = body.EndCoord
 	ins.AddComment(g, "SVGOCODE finished, retracting")

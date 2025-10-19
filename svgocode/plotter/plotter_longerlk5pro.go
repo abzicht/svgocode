@@ -45,6 +45,6 @@ func PlotterConfigLongerLK5ProDefault() *PlotterConfig {
 	p.RetractHeight = 23.0
 	p.DrawSpeed = 2000.0
 	p.RetractSpeed = 4000.0
-	p.RemoveComments = true
+	p.RemoveComments = false
 	return p
 }

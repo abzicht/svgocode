@@ -3,6 +3,7 @@ package gcode
 import (
 	"fmt"
 
+	"github.com/abzicht/svgocode/llog"
 	"github.com/abzicht/svgocode/svgocode/math64"
 	"github.com/abzicht/svgocode/svgocode/plotter"
 )
@@ -22,6 +23,21 @@ func NewIns(plotterConf *plotter.PlotterConfig) *Ins {
 // Add a comment line
 func (ins *Ins) AddComment(g *Gcode, comment string) *Gcode {
 	g.AppendCode(fmt.Sprintf("; %s", comment))
+	return g
+}
+
+// Set unit
+func (ins *Ins) SetUnit(g *Gcode, u math64.UnitType) *Gcode {
+	var gcmd string = "G21"
+	switch u {
+	case math64.UnitMM:
+		gcmd = "G21 ; Setting unit (mm)"
+	case math64.UnitIN:
+		gcmd = "G20 ; Setting unit (in)"
+	default:
+		llog.Panicf("Unsupported unit type (%s)", u)
+	}
+	g.AppendCode(gcmd)
 	return g
 }
 

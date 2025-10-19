@@ -3,6 +3,7 @@ builddir=build
 
 BUILDLDFLAGS?=-ldflags="-s -w"
 DEBUGLDFLAGS?=
+TESTFLAGS?=
 
 all: doc build
 
@@ -18,6 +19,9 @@ build-dev:
 	-rm $(builddir)/*
 	# Keep debug information in the build
 	go build $(DEBUGLDFLAGS) -o $(builddir)/$(target) main.go
+
+test:
+	go test $(TESTFLAGS) ./...
 
 run: build
 	# Run a clean build
