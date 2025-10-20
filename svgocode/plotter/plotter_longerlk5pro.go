@@ -46,5 +46,7 @@ func PlotterConfigLongerLK5ProDefault() *PlotterConfig {
 	p.DrawSpeed = 2000.0
 	p.RetractSpeed = 4000.0
 	p.RemoveComments = false
+	p.MirrorX = true
+	p.MirrorY = true
 	return p
 }

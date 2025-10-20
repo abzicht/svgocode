@@ -15,13 +15,19 @@ import (
 func Svg2Gcode(s *svg.SVG, plotterConf *plotter.PlotterConfig, conv convs.ConverterI, order ordering.OrderingI) *gcode.Gcode {
 	runtConf := plotter.NewRuntimeConfig()
 	runtConf.SetUnitType(s.UserUnit())
+	plotterTransform := plotterConf.TransformChain()
 
 	var gcodes []*gcode.Gcode
-	for svgElement := range svg.Seq(s) {
+	for svgElementPath := range svg.PathSeq(s) {
+		if len(svgElementPath) == 0 {
+			continue
+		}
+		pathTransform := svg.TransformChainForPath(svgElementPath)
+		svgElement := svgElementPath[len(svgElementPath)-1]
 		// First, convert the svg objects to individual gcode segments using the
 		// provided converter.
 		if svg.IsLeaf(svgElement) {
-			gcodeOpt := convs.SVGConvert(svgElement, conv)
+			gcodeOpt := convs.SVGConvert(svgElement, append(plotterTransform, pathTransform...), conv)
 			switch gcodeOpt.(type) {
 			case fun.Some[*gcode.Gcode]:
 				gcodes = append(gcodes, gcodeOpt.GetValue())

@@ -9,6 +9,7 @@ import (
 	"github.com/abzicht/svgocode/svgocode/math64"
 	"github.com/abzicht/svgocode/svgocode/plotter"
 	"github.com/abzicht/svgocode/svgocode/svg"
+	"github.com/abzicht/svgocode/svgocode/svg/svgtransform"
 )
 
 // Direct conversion to gcode paths, no filling of bodies
@@ -32,7 +33,7 @@ func (d *Direct) addIdComment(g *gcode.Gcode, type_, id string) {
 	d.ins.AddComment(g, fmt.Sprintf("SVG %s (ID: %s)", type_, id))
 }
 
-func (d *Direct) Path(p *svg.Path) fun.Option[*gcode.Gcode] {
+func (d *Direct) Path(p *svg.Path, transformChain svgtransform.TransformChain) fun.Option[*gcode.Gcode] {
 	g := gcode.NewGcode()
 	d.addIdComment(g, "Path", p.Id)
 	if len(p.D) == 0 {
@@ -45,7 +46,7 @@ func (d *Direct) Path(p *svg.Path) fun.Option[*gcode.Gcode] {
 	g = PathCommandsToGcode(cmds, g, d.plotterConf)
 	return fun.NewSome[*gcode.Gcode](g)
 }
-func (d *Direct) Line(l *svg.Line) fun.Option[*gcode.Gcode] {
+func (d *Direct) Line(l *svg.Line, transformChain svgtransform.TransformChain) fun.Option[*gcode.Gcode] {
 	g := gcode.NewGcode()
 	d.addIdComment(g, "Line", l.Id)
 	g.BoundsMin.X = l.X1
@@ -59,21 +60,21 @@ func (d *Direct) Line(l *svg.Line) fun.Option[*gcode.Gcode] {
 	return fun.NewSome[*gcode.Gcode](g)
 }
 
-func (d *Direct) Polygon(p *svg.Polygon) fun.Option[*gcode.Gcode] {
+func (d *Direct) Polygon(p *svg.Polygon, transformChain svgtransform.TransformChain) fun.Option[*gcode.Gcode] {
 	g := gcode.NewGcode()
 	d.addIdComment(g, "Polygon", p.Id)
 	llog.Warn("Polygon not implemented\n")
 	return fun.NewNone[*gcode.Gcode]()
 }
 
-func (d *Direct) Polyline(p *svg.Polyline) fun.Option[*gcode.Gcode] {
+func (d *Direct) Polyline(p *svg.Polyline, transformChain svgtransform.TransformChain) fun.Option[*gcode.Gcode] {
 	g := gcode.NewGcode()
 	d.addIdComment(g, "Polyline", p.Id)
 	llog.Warn("Polyline not implemented\n")
 	return fun.NewSome[*gcode.Gcode](g)
 }
 
-func (d *Direct) Circle(c *svg.Circle) fun.Option[*gcode.Gcode] {
+func (d *Direct) Circle(c *svg.Circle, transformChain svgtransform.TransformChain) fun.Option[*gcode.Gcode] {
 	g := gcode.NewGcode()
 	d.addIdComment(g, "Circle", c.Id)
 	g.BoundsMin.X = c.CX - c.R
@@ -87,14 +88,14 @@ func (d *Direct) Circle(c *svg.Circle) fun.Option[*gcode.Gcode] {
 	return fun.NewSome[*gcode.Gcode](g)
 }
 
-func (d *Direct) Ellipse(e *svg.Ellipse) fun.Option[*gcode.Gcode] {
+func (d *Direct) Ellipse(e *svg.Ellipse, transformChain svgtransform.TransformChain) fun.Option[*gcode.Gcode] {
 	g := gcode.NewGcode()
 	d.addIdComment(g, "Ellipse", e.Id)
 	llog.Warn("Ellipse not implemented\n")
 	return fun.NewSome[*gcode.Gcode](g)
 }
 
-func (d *Direct) Rect(r *svg.Rect) fun.Option[*gcode.Gcode] {
+func (d *Direct) Rect(r *svg.Rect, transformChain svgtransform.TransformChain) fun.Option[*gcode.Gcode] {
 	g := gcode.NewGcode()
 	d.addIdComment(g, "Rect", r.Id)
 	g.StartCoord = math64.VectorF3{X: r.X, Y: r.Y, Z: d.plotterConf.DrawHeight}

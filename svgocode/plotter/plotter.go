@@ -5,6 +5,7 @@ import (
 
 	"github.com/abzicht/svgocode/llog"
 	"github.com/abzicht/svgocode/svgocode/math64"
+	"github.com/abzicht/svgocode/svgocode/svg/svgtransform"
 	"gopkg.in/yaml.v2"
 )
 
@@ -27,6 +28,8 @@ type PlotterConfig struct {
 	RetractSpeed  math64.Speed `yaml:"retract-speed"`
 	// RemoveComments: Strip produced gcode from all comments
 	RemoveComments bool `yaml:"remove-comments"`
+	MirrorX        bool `yaml:"mirror-x-axis"`
+	MirrorY        bool `yaml:"mirror-y-axis"`
 }
 
 // Read a PlotterConfig struct from a reader in YAML-format and return it.
@@ -35,6 +38,15 @@ func InitPlotterConfig(r io.Reader) (*PlotterConfig, error) {
 	p := new(PlotterConfig)
 	err := decoder.Decode(p)
 	return p, err
+}
+
+// Create a list of transform commands for the given configuration.
+func (p *PlotterConfig) TransformChain() svgtransform.TransformChain {
+	chain := svgtransform.TransformChain{}
+	if p.MirrorX || p.MirrorY {
+		chain = append(chain, svgtransform.NewMirror(p.MirrorX, p.MirrorY, p.Plate.Center))
+	}
+	return chain
 }
 
 type RuntimeConfig struct {
@@ -46,6 +58,7 @@ func NewRuntimeConfig() *RuntimeConfig {
 	r.UnitType = math64.UnitMM
 	return r
 }
+
 func (r *RuntimeConfig) SetUnitType(u math64.UnitType) {
 	switch u {
 	case math64.UnitMM, math64.UnitIN:

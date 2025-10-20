@@ -1,11 +1,19 @@
-package svg
+package svgtransform
 
 import "github.com/abzicht/svgocode/svgocode/math64"
 
-type Translate math64.VectorF2
+type Translate struct {
+	Offset math64.VectorF2
+}
+
+func NewTranslate(offset math64.VectorF2) *Translate {
+	t := new(Translate)
+	t.Offset = offset
+	return t
+}
 
 func (t *Translate) apply(p math64.VectorF2) math64.VectorF2 {
-	return p.Add(t)
+	return p.Add(t.Offset)
 }
 func (t *Translate) Apply(p ...math64.VectorF2) []math64.VectorF2 {
 	for i, _ := range p {

@@ -6,11 +6,13 @@ import (
 	"github.com/abzicht/gogenericfunc/fun"
 	"github.com/abzicht/svgocode/llog"
 	"github.com/abzicht/svgocode/svgocode/math64"
+	"github.com/abzicht/svgocode/svgocode/svg/svgtransform"
 )
 
 type SVGElement interface {
 	//Position() math64.VectorF2
 	Children() fun.Option[[]SVGElement]
+	Transform() svgtransform.TransformChain
 }
 
 type SVGShapeElement interface {
@@ -22,6 +24,14 @@ type SVGElements struct {
 	SVG       []*SVG      `xml:"svg"`
 	Groupings []*Grouping `xml:"g"`
 	ALinks    []*ALink    `xml:"a"`
+}
+
+func TransformChainForPath(path []SVGElement) svgtransform.TransformChain {
+	chain := make(svgtransform.TransformChain, len(path))
+	for _, element := range path {
+		chain = append(chain, element.Transform()...)
+	}
+	return chain
 }
 
 func (svgElem *SVGElements) Children() fun.Option[[]SVGElement] {
@@ -76,6 +86,7 @@ type SVG struct {
 	Width   string   `xml:"width,attr"`
 	Height  string   `xml:"height,attr"`
 	SVGCoreAttributes
+	SVGPresentationTransform
 	SVGElements
 }
 
@@ -100,6 +111,7 @@ func (s *SVG) UserUnit() (unit math64.UnitType) {
 
 type Grouping struct {
 	SVGCoreAttributes
+	SVGPresentationTransform
 	SVGElements
 }
 
@@ -107,11 +119,13 @@ type ALink struct {
 	Href  string `xml:"href,attr"`
 	XHref string `xml:"xlink:href,attr"`
 	SVGCoreAttributes
+	SVGPresentationTransform
 	SVGElements
 }
 
 type Path struct {
 	SVGCoreAttributes
+	SVGPresentationTransform
 	D string `xml:"d,attr"`
 }
 
@@ -121,6 +135,7 @@ func (s *Path) Children() fun.Option[[]SVGElement] {
 
 type Line struct {
 	SVGCoreAttributes
+	SVGPresentationTransform
 	X1 math64.Float `xml:"x1,attr"`
 	Y1 math64.Float `xml:"y1,attr"`
 	X2 math64.Float `xml:"x2,attr"`
@@ -133,6 +148,7 @@ func (s *Line) Children() fun.Option[[]SVGElement] {
 
 type Rect struct {
 	SVGCoreAttributes
+	SVGPresentationTransform
 	X      math64.Float `xml:"x,attr"`
 	Y      math64.Float `xml:"y,attr"`
 	Width  math64.Float `xml:"width,attr"`
@@ -147,6 +163,7 @@ func (r *Rect) Children() fun.Option[[]SVGElement] {
 
 type Circle struct {
 	SVGCoreAttributes
+	SVGPresentationTransform
 	CX math64.Float `xml:"cx,attr"`
 	CY math64.Float `xml:"cy,attr"`
 	R  math64.Float `xml:"r,attr"`
@@ -158,6 +175,7 @@ func (c *Circle) Children() fun.Option[[]SVGElement] {
 
 type Ellipse struct {
 	SVGCoreAttributes
+	SVGPresentationTransform
 	CX math64.Float `xml:"cx,attr"`
 	CY math64.Float `xml:"cy,attr"`
 	RX math64.Float `xml:"rx,attr"`
@@ -170,6 +188,7 @@ func (e *Ellipse) Children() fun.Option[[]SVGElement] {
 
 type Polygon struct {
 	SVGCoreAttributes
+	SVGPresentationTransform
 	Points string `xml:"points,attr"`
 }
 
@@ -179,6 +198,7 @@ func (p *Polygon) Children() fun.Option[[]SVGElement] {
 
 type Polyline struct {
 	SVGCoreAttributes
+	SVGPresentationTransform
 	Points string `xml:"points,attr"`
 }
 
@@ -191,11 +211,7 @@ func (p *Polyline) Children() fun.Option[[]SVGElement] {
 // Returns false else
 func IsCollection(s SVGElement) bool {
 	switch s.(type) {
-	case *Grouping:
-		return true
-	case *ALink:
-		return true
-	case *SVG:
+	case *Grouping, *ALink, *SVG:
 		return true
 	}
 	return false
@@ -204,19 +220,7 @@ func IsCollection(s SVGElement) bool {
 // Returns true, iff element can not contain children
 func IsLeaf(s SVGElement) bool {
 	switch s.(type) {
-	case *Path:
-		return true
-	case *Line:
-		return true
-	case *Rect:
-		return true
-	case *Circle:
-		return true
-	case *Ellipse:
-		return true
-	case *Polygon:
-		return true
-	case *Polyline:
+	case *Path, *Line, *Rect, *Circle, *Ellipse, *Polygon, *Polyline:
 		return true
 	}
 	return false

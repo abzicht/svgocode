@@ -1,6 +1,8 @@
 package svgtransform
 
-import "github.com/abzicht/svgocode/svgocode/math64"
+import (
+	"github.com/abzicht/svgocode/svgocode/math64"
+)
 
 type TransformCommandType string
 
@@ -16,10 +18,10 @@ const (
 	TransformCmdSkew       = TransformCommandType("skew")
 	TransformCmdSkewX      = TransformCommandType("skewX")
 	TransformCmdSkewY      = TransformCommandType("skewY")
+	TransformCmdMirror     = TransformCommandType("mirror") // Not a standard command
 )
 
 type Transform interface {
-	TransformCommandType() TransformCommandType
 	Apply(p ...math64.VectorF2) []math64.VectorF2
 }
 
