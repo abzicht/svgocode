@@ -23,6 +23,7 @@ const (
 
 type Transform interface {
 	Apply(p ...math64.VectorF2) []math64.VectorF2
+	ToMatrix() *TransformMatrix
 }
 
 type TransformChain []Transform
