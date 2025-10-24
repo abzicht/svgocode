@@ -24,5 +24,8 @@ func (t *Translate) Apply(p ...math64.VectorF2) []math64.VectorF2 {
 }
 
 func (t *Translate) ToMatrix() *TransformMatrix {
-	return NewTransformMatrix(math64.NewMatrixF3(1, 0, 0, 0, 1, 0, t.Offset.X, t.Offset.Y, 0))
+	m := math64.MatrixF4Identity()
+	m[3] = t.Offset.X // or 2?
+	m[7] = t.Offset.Y // or 6?
+	return NewTransformMatrix(m)
 }

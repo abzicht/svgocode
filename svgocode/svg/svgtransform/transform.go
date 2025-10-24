@@ -34,3 +34,11 @@ func (tc TransformChain) Apply(p ...math64.VectorF2) []math64.VectorF2 {
 	}
 	return p
 }
+
+func (tc TransformChain) ToMatrix() *TransformMatrix {
+	m := math64.MatrixF4Identity()
+	for _, t := range tc {
+		m = m.MProduct(t.ToMatrix().M)
+	}
+	return NewTransformMatrix(m)
+}

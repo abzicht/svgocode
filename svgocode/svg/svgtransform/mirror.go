@@ -1,6 +1,9 @@
 package svgtransform
 
-import "github.com/abzicht/svgocode/svgocode/math64"
+import (
+	"github.com/abzicht/svgocode/llog"
+	"github.com/abzicht/svgocode/svgocode/math64"
+)
 
 type Mirror struct {
 	X      bool            // Mirror the X axis
@@ -14,6 +17,12 @@ func NewMirror(x, y bool, center math64.VectorF2) *Mirror {
 	m.Y = y
 	m.Center = center
 	return m
+}
+
+func (m *Mirror) ToMatrix() *TransformMatrix {
+	//TODO
+	llog.Warn("Matrix for Mirror transform not yet implemented")
+	return NewTransformMatrix(math64.MatrixF4Identity())
 }
 
 func (m *Mirror) apply(p math64.VectorF2) math64.VectorF2 {

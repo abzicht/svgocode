@@ -57,10 +57,36 @@ func ParseTransform(input string) TransformChain {
 			transform = NewTranslate(math64.VectorF2{X: params[0]})
 		case TransformCmdTranslateY:
 			transform = NewTranslate(math64.VectorF2{Y: params[0]})
-		//TODO: add transformations
-		//case TransformCmdMatrix:
-		//case TransformCmdScale, TransformCmdSkew:
-		//case TransformCmdRotate, TransformCmdScaleX, TransformCmdScaleY, TransformCmdSkewX, TransformCmdSkewY:
+		case TransformCmdMatrix:
+			m := math64.MatrixF4Identity()
+			if len(params) != 6 {
+				llog.Panicf("Expected transform matrix with 6 parameters but got %d.", len(params))
+			}
+			m[0] = params[0]
+			m[4] = params[1]
+			m[1] = params[2]
+			m[5] = params[3]
+			m[3] = params[4]
+			m[7] = params[5]
+			transform = NewTransformMatrix(m)
+		case TransformCmdScale:
+			transform = NewScale(math64.VectorF2{X: params[0], Y: params[0]})
+		case TransformCmdScaleX:
+			transform = NewScale(math64.VectorF2{X: params[0], Y: 1})
+		case TransformCmdScaleY:
+			transform = NewScale(math64.VectorF2{X: 1, Y: params[0]})
+		case TransformCmdRotate:
+			if len(params) == 1 {
+				transform = NewRotate(math64.AngDeg(params[0]), math64.VectorF2{X: 0, Y: 0})
+			} else {
+				transform = NewRotate(math64.AngDeg(params[0]), math64.VectorF2{X: params[1], Y: params[2]})
+			}
+		case TransformCmdSkew:
+			transform = NewSkew(math64.VectorT2[math64.AngDeg]{X: math64.AngDeg(params[0]), Y: math64.AngDeg(params[1])})
+		case TransformCmdSkewX:
+			transform = NewSkew(math64.VectorT2[math64.AngDeg]{X: math64.AngDeg(params[0]), Y: 0})
+		case TransformCmdSkewY:
+			transform = NewSkew(math64.VectorT2[math64.AngDeg]{X: 0, Y: math64.AngDeg(params[0])})
 		default:
 			llog.Errorf("Cannot add transformation %s: Not yet implemented\n", fnName)
 		}
@@ -89,7 +115,11 @@ func validateTransform(fn TransformCommandType, count int) error {
 		if count != 2 {
 			return fmt.Errorf("expected 2 parameters, got %d", count)
 		}
-	case TransformCmdRotate, TransformCmdTranslateX, TransformCmdTranslateY, TransformCmdScaleX, TransformCmdScaleY, TransformCmdSkewX, TransformCmdSkewY:
+	case TransformCmdRotate:
+		if count != 1 && count != 3 {
+			return fmt.Errorf("expected 1 or 3 parameters, got %d", count)
+		}
+	case TransformCmdTranslateX, TransformCmdTranslateY, TransformCmdScaleX, TransformCmdScaleY, TransformCmdSkewX, TransformCmdSkewY:
 		if count != 1 {
 			return fmt.Errorf("expected 1 parameter, got %d", count)
 		}

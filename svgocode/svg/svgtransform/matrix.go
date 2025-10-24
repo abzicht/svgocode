@@ -3,10 +3,10 @@ package svgtransform
 import "github.com/abzicht/svgocode/svgocode/math64"
 
 type TransformMatrix struct {
-	M math64.MatrixF3
+	M math64.MatrixF4
 }
 
-func NewTransformMatrix(m math64.MatrixF3) *TransformMatrix {
+func NewTransformMatrix(m math64.MatrixF4) *TransformMatrix {
 	tMat := new(TransformMatrix)
 	tMat.M = m
 	return tMat
@@ -18,7 +18,8 @@ func (tMat *TransformMatrix) ToMatrix() *TransformMatrix {
 }
 
 func (tMat *TransformMatrix) ApplyP(p math64.VectorF2) math64.VectorF2 {
-	return tMat.M.VProductF2(p)
+	v4 := tMat.M.VProduct(math64.VectorF4{X: p.X, Y: p.Y, Z: 1, W: 1})
+	return math64.VectorF2{X: v4.X, Y: v4.Y}
 }
 
 func (tMat *TransformMatrix) Apply(points ...math64.VectorF2) []math64.VectorF2 {
