@@ -238,7 +238,7 @@ func (p *Polyline) Points() []math64.VectorF2 {
 	return ParsePointString(p.P)
 }
 
-// Returns true, if element is a SVG type that can contain children
+// Returns true, if the element is a SVG type that can contain multiple children
 // Also returns true, if element does not contain children, but could do so.
 // Returns false else
 func IsCollection(s SVGElement) bool {

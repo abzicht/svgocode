@@ -12,13 +12,19 @@ import (
 	"github.com/abzicht/svgocode/svgocode/svg/svgtransform"
 )
 
+type directPathContext struct {
+	g           *gcode.Gcode
+	tMat        *svgtransform.TransformMatrix
+	plotterConf *plotter.PlotterConfig
+}
+
 // This code was partly produced by AI.
 
 func PathCommandsToGcode(commands []svg.PathCommand, transformChain svgtransform.TransformChain, g *gcode.Gcode, plotterConf *plotter.PlotterConfig) *gcode.Gcode {
-	//TODO add gcode bounds
 	var b strings.Builder
 
 	tMat := transformChain.ToMatrix()
+	dCtx := directPathContext{g: g, tMat: tMat, plotterConf: plotterConf}
 	var (
 		zUp   = plotterConf.RetractHeight // pen/tool up height
 		zDown = plotterConf.DrawHeight    // pen/tool down height
@@ -48,7 +54,7 @@ func PathCommandsToGcode(commands []svg.PathCommand, transformChain svgtransform
 					x += current.X
 					y += current.Y
 				}
-				fmt.Fprint(&b, drawPointStr(math64.VectorF2{X: x, Y: y}, true, tMat))
+				fmt.Fprint(&b, drawPointStr(&dCtx, math64.VectorF2{X: x, Y: y}, true))
 				current = math64.VectorF2{X: x, Y: y}
 				start = current
 			}
@@ -64,7 +70,7 @@ func PathCommandsToGcode(commands []svg.PathCommand, transformChain svgtransform
 					x += current.X
 					y += current.Y
 				}
-				fmt.Fprint(&b, drawPointStr(math64.VectorF2{X: x, Y: y}, false, tMat))
+				fmt.Fprint(&b, drawPointStr(&dCtx, math64.VectorF2{X: x, Y: y}, false))
 				current = math64.VectorF2{X: x, Y: y}
 			}
 
@@ -78,7 +84,7 @@ func PathCommandsToGcode(commands []svg.PathCommand, transformChain svgtransform
 				if cmd.Relative {
 					x += current.X
 				}
-				fmt.Fprint(&b, drawPointStr(math64.VectorF2{X: x, Y: current.Y}, false, tMat))
+				fmt.Fprint(&b, drawPointStr(&dCtx, math64.VectorF2{X: x, Y: current.Y}, false))
 				current.X = x
 			}
 
@@ -92,7 +98,7 @@ func PathCommandsToGcode(commands []svg.PathCommand, transformChain svgtransform
 				if cmd.Relative {
 					y += current.Y
 				}
-				fmt.Fprint(&b, drawPointStr(math64.VectorF2{X: current.X, Y: y}, false, tMat))
+				fmt.Fprint(&b, drawPointStr(&dCtx, math64.VectorF2{X: current.X, Y: y}, false))
 				current.Y = y
 			}
 
@@ -113,7 +119,7 @@ func PathCommandsToGcode(commands []svg.PathCommand, transformChain svgtransform
 				for t := math64.Float(0.0); t <= 1.0; t += 1.0 / steps {
 					x := cubicBezier(math64.Float(t), current.X, p1.X, p2.X, p3.X)
 					y := cubicBezier(math64.Float(t), current.Y, p1.Y, p2.Y, p3.Y)
-					fmt.Fprint(&b, drawPointStr(math64.VectorF2{X: x, Y: y}, false, tMat))
+					fmt.Fprint(&b, drawPointStr(&dCtx, math64.VectorF2{X: x, Y: y}, false))
 				}
 				current = p3
 			}
@@ -135,7 +141,7 @@ func PathCommandsToGcode(commands []svg.PathCommand, transformChain svgtransform
 				for t := math64.Float(0.0); t <= 1.0; t += 1.0 / steps {
 					x := quadraticBezier(math64.Float(t), current.X, p1.X, p2.X)
 					y := quadraticBezier(math64.Float(t), current.Y, p1.Y, p2.Y)
-					fmt.Fprint(&b, drawPointStr(math64.VectorF2{X: x, Y: y}, false, tMat))
+					fmt.Fprint(&b, drawPointStr(&dCtx, math64.VectorF2{X: x, Y: y}, false))
 				}
 				current = p2
 			}
@@ -151,13 +157,15 @@ func PathCommandsToGcode(commands []svg.PathCommand, transformChain svgtransform
 					to.X += current.X
 					to.Y += current.Y
 				}
-				approximateArc(&b, current, to, a, steps, tMat)
+				for _, arcPoint := range approximateArc(current, to, a, steps) {
+					fmt.Fprint(&b, drawPointStr(&dCtx, arcPoint, true))
+				}
 				current = to
 			}
 
 		case svg.CmdClosePath:
 			if penDown {
-				fmt.Fprint(&b, drawPointStr(math64.VectorF2{X: start.X, Y: start.Y}, false, tMat))
+				fmt.Fprint(&b, drawPointStr(&dCtx, math64.VectorF2{X: start.X, Y: start.Y}, false))
 				penDown = false
 			}
 			current = start
@@ -167,21 +175,27 @@ func PathCommandsToGcode(commands []svg.PathCommand, transformChain svgtransform
 		}
 	}
 	{
-		g.StartCoord = math64.VectorF3{X: math64.Float(start.X), Y: math64.Float(start.Y), Z: plotterConf.DrawHeight}
-		g.EndCoord = math64.VectorF3{X: math64.Float(current.X), Y: math64.Float(current.Y), Z: plotterConf.DrawHeight}
+		startTransformed := tMat.ApplyP(start)
+		currentTransformed := tMat.ApplyP(current)
+		g.StartCoord = math64.VectorF3{X: startTransformed.X, Y: startTransformed.Y, Z: plotterConf.DrawHeight}
+		g.EndCoord = math64.VectorF3{X: currentTransformed.X, Y: currentTransformed.Y, Z: plotterConf.DrawHeight}
 	}
 	g.AppendCode(b.String())
 	return g
 }
 
 // Create a G0/G1 move instruction to a point that is transformed using the
-// given matrix
-func drawPointStr(point math64.VectorF2, isDrawing bool, tMat *svgtransform.TransformMatrix) string {
-	point = tMat.ApplyP(point)
+// given matrix. Also updates the provided gcode's Min/Max bounds
+func drawPointStr(dCtx *directPathContext, point math64.VectorF2, isDrawing bool) string {
+	point = dCtx.tMat.ApplyP(point)
+	point3 := math64.VectorF3{X: point.X, Y: point.Y, Z: dCtx.plotterConf.RetractHeight}
 	gcmd := "G1"
 	if isDrawing {
 		gcmd = "G0"
+		point3.Z = dCtx.plotterConf.DrawHeight
 	}
+	dCtx.g.BoundsMin = dCtx.g.BoundsMin.Min(point3)
+	dCtx.g.BoundsMax = dCtx.g.BoundsMax.Max(point3)
 	return fmt.Sprintf("%s X%.3f Y%.3f\n", gcmd, point.X, point.Y)
 }
 
@@ -201,7 +215,8 @@ func quadraticBezier(t, p0, p1, p2 math64.Float) math64.Float {
 }
 
 // Approximate elliptical arc with line segments
-func approximateArc(b *strings.Builder, from, to math64.VectorF2, a svg.EllipticalArcArg, steps math64.Float, tMat *svgtransform.TransformMatrix) {
+func approximateArc(from, to math64.VectorF2, a svg.EllipticalArcArg, steps math64.Float) []math64.VectorF2 {
+	var points []math64.VectorF2
 	// For simplicity: approximate as a simple ellipse arc from 'from' to 'to'
 	var startAngle math64.AngRad = 0.0
 	endAngle := math64.AngDeg(1).Rad() // placeholder; full arc solving is complex
@@ -211,7 +226,8 @@ func approximateArc(b *strings.Builder, from, to math64.VectorF2, a svg.Elliptic
 		angle := startAngle + t*(endAngle-startAngle)
 		x := from.X + a.R.X*angle.Cos()
 		y := from.Y + a.R.Y*angle.Sin()
-		fmt.Fprint(b, drawPointStr(math64.VectorF2{X: x, Y: y}, false, tMat))
+		points = append(points, math64.VectorF2{X: x, Y: y})
 	}
-	fmt.Fprint(b, drawPointStr(to, false, tMat))
+	points = append(points, to)
+	return points
 }

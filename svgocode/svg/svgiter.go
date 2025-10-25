@@ -8,13 +8,7 @@ import (
 	"github.com/abzicht/svgocode/llog"
 )
 
-// Iterator, steps through svg trees
-
-type Iterator struct {
-	el            SVGElement
-	currentPathIn []int // Indices of current path
-	currentPathEl []SVGElement
-}
+// Iterators for stepping through SVG trees
 
 func recurse(yield func(SVGElement) bool, svgElements ...SVGElement) bool {
 	for _, s := range svgElements {
@@ -36,7 +30,7 @@ func recurse(yield func(SVGElement) bool, svgElements ...SVGElement) bool {
 	return true
 }
 
-// Iterate over all children of the given element. Returns all nodes, including
+// Iterate over all children of the given element. Yields all nodes, including
 // non-leafs and including the element itself.
 func Seq(s SVGElement) iter.Seq[SVGElement] {
 	return func(yield func(SVGElement) bool) {
