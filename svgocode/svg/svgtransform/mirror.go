@@ -1,7 +1,6 @@
 package svgtransform
 
 import (
-	"github.com/abzicht/svgocode/llog"
 	"github.com/abzicht/svgocode/svgocode/math64"
 )
 
@@ -20,9 +19,20 @@ func NewMirror(x, y bool, center math64.VectorF2) *Mirror {
 }
 
 func (m *Mirror) ToMatrix() *TransformMatrix {
-	//TODO
-	llog.Warn("Matrix for Mirror transform not yet implemented")
-	return NewTransformMatrix(math64.MatrixF4Identity())
+	// translate by offset, scale with -1, and translate back
+	offset := m.Center
+	scale := math64.VectorF2{X: 1, Y: 1}
+	if m.X {
+		scale.X = -1
+	} else {
+		offset.X = 0
+	}
+	if m.Y {
+		scale.Y = -1
+	} else {
+		offset.Y = 0
+	}
+	return TransformChain{NewTranslate(offset), NewScale(scale), NewTranslate(math64.VectorF2{X: -offset.X, Y: -offset.Y})}.ToMatrix()
 }
 
 func (m *Mirror) apply(p math64.VectorF2) math64.VectorF2 {

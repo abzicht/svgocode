@@ -24,10 +24,11 @@ type SVGElements struct {
 	SVG       []*SVG      `xml:"svg"`
 	Groupings []*Grouping `xml:"g"`
 	ALinks    []*ALink    `xml:"a"`
+	Texts     []*Text     `xml:"text"`
 }
 
 func TransformChainForPath(path []SVGElement) svgtransform.TransformChain {
-	chain := make(svgtransform.TransformChain, len(path))
+	chain := svgtransform.TransformChain{}
 	for _, element := range path {
 		chain = append(chain, element.Transform()...)
 	}
@@ -44,6 +45,9 @@ func (svgElem *SVGElements) Children() fun.Option[[]SVGElement] {
 	}
 	for _, a := range svgElem.ALinks {
 		children = append(children, a)
+	}
+	for _, t := range svgElem.Texts {
+		children = append(children, t)
 	}
 	for _, p := range svgElem.Paths {
 		children = append(children, p)
@@ -109,6 +113,14 @@ func (s *SVG) UserUnit() (unit math64.UnitType) {
 	return
 }
 
+type Tspan struct {
+	SVGCoreAttributes
+	SVGPresentationTransform
+	X      math64.Float `xml:"x,attr"`
+	Y      math64.Float `xml:"y,attr"`
+	String string       `xml:"innerhtml"`
+}
+
 type Grouping struct {
 	SVGCoreAttributes
 	SVGPresentationTransform
@@ -123,13 +135,25 @@ type ALink struct {
 	SVGElements
 }
 
+type Text struct {
+	SVGCoreAttributes
+	SVGPresentationTransform
+	Tspan *Tspan       `xml:"tspan,attr"`
+	X     math64.Float `xml:"x,attr"`
+	Y     math64.Float `xml:"y,attr"`
+}
+
+func (t *Text) Children() fun.Option[[]SVGElement] {
+	return fun.NewNone[[]SVGElement]()
+}
+
 type Path struct {
 	SVGCoreAttributes
 	SVGPresentationTransform
 	D string `xml:"d,attr"`
 }
 
-func (s *Path) Children() fun.Option[[]SVGElement] {
+func (p *Path) Children() fun.Option[[]SVGElement] {
 	return fun.NewNone[[]SVGElement]()
 }
 
@@ -189,21 +213,29 @@ func (e *Ellipse) Children() fun.Option[[]SVGElement] {
 type Polygon struct {
 	SVGCoreAttributes
 	SVGPresentationTransform
-	Points string `xml:"points,attr"`
+	P string `xml:"points,attr"`
 }
 
 func (p *Polygon) Children() fun.Option[[]SVGElement] {
 	return fun.NewNone[[]SVGElement]()
 }
 
+func (p *Polygon) Points() []math64.VectorF2 {
+	return ParsePointString(p.P)
+}
+
 type Polyline struct {
 	SVGCoreAttributes
 	SVGPresentationTransform
-	Points string `xml:"points,attr"`
+	P string `xml:"points,attr"`
 }
 
 func (p *Polyline) Children() fun.Option[[]SVGElement] {
 	return fun.NewNone[[]SVGElement]()
+}
+
+func (p *Polyline) Points() []math64.VectorF2 {
+	return ParsePointString(p.P)
 }
 
 // Returns true, if element is a SVG type that can contain children

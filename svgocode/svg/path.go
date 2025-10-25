@@ -6,6 +6,8 @@ import (
 	"strconv"
 	"strings"
 	"unicode"
+
+	"github.com/abzicht/svgocode/svgocode/math64"
 )
 
 // SVG Path command parser.
@@ -33,25 +35,19 @@ func (c PathCommandType) String() string {
 	}[c]
 }
 
-type PathPoint struct {
-	X float64
-	Y float64
-}
-
 type EllipticalArcArg struct {
-	Rx    float64
-	Ry    float64
-	XAxis float64 // x-axis rotation
-	Large int     // flag 0/1
-	Sweep int     // flag 0/1
-	To    PathPoint
+	R     math64.VectorF2
+	XAxis math64.Float // x-axis rotation
+	Large bool         // flag 0/1
+	Sweep bool         // flag 0/1
+	To    math64.VectorF2
 }
 
 type PathCommand struct {
 	Type        PathCommandType
 	Relative    bool
-	PathPoints  []PathPoint // used for moveto/lineto/curveto combos
-	Coordinates []float64   // used for H/V coordinates (list of floats)
+	PathPoints  []math64.VectorF2 // used for moveto/lineto/curveto combos
+	Coordinates []math64.Float    // used for H/V coordinates (list of floats)
 	ArcArgs     []EllipticalArcArg
 }
 
@@ -206,7 +202,7 @@ func (p *parser) parseNumber() (int, error) {
 }
 
 // parseFloat reads a floating-point number from the stream.
-func (p *parser) parseFloat() (float64, error) {
+func (p *parser) parseFloat() (math64.Float, error) {
 	var b strings.Builder
 
 	p.skipWsp()
@@ -251,7 +247,7 @@ func (p *parser) parseFloat() (float64, error) {
 	if err != nil {
 		return 0, fmt.Errorf("invalid float %q: %v", numStr, err)
 	}
-	return val, nil
+	return math64.Float(val), nil
 }
 
 func isDigit(r rune) bool {
@@ -273,9 +269,9 @@ func (p *parser) parseFlag() (int, error) {
 
 // coordinate ::= sign? number
 // sign ::= "+" | "-"
-func (p *parser) parseCoordinate() (float64, error) {
+func (p *parser) parseCoordinate() (math64.Float, error) {
 	p.skipWsp()
-	sign := 1.0
+	var sign math64.Float = 1.0
 	if !p.eof() {
 		if p.peek() == '+' {
 			p.i++
@@ -292,22 +288,22 @@ func (p *parser) parseCoordinate() (float64, error) {
 }
 
 // coordinate_pair ::= coordinate comma_wsp? coordinate
-func (p *parser) parseCoordinatePair() (PathPoint, error) {
+func (p *parser) parseCoordinatePair() (math64.VectorF2, error) {
 	x, err := p.parseCoordinate()
 	if err != nil {
-		return PathPoint{}, err
+		return math64.VectorF2{}, err
 	}
 	p.consumeCommaWspOptional()
 	y, err := p.parseCoordinate()
 	if err != nil {
-		return PathPoint{}, err
+		return math64.VectorF2{}, err
 	}
-	return PathPoint{X: x, Y: y}, nil
+	return math64.VectorF2{X: x, Y: y}, nil
 }
 
 // coordinate_pair_sequence ::= coordinate_pair | (coordinate_pair comma_wsp? coordinate_pair_sequence)
-func (p *parser) parseCoordinatePairSequence() ([]PathPoint, error) {
-	var pts []PathPoint
+func (p *parser) parseCoordinatePairSequence() ([]math64.VectorF2, error) {
+	var pts []math64.VectorF2
 	pt, err := p.parseCoordinatePair()
 	if err != nil {
 		return nil, err
@@ -342,8 +338,8 @@ func (p *parser) parseCoordinatePairSequence() ([]PathPoint, error) {
 }
 
 // coordinate_sequence ::= coordinate | (coordinate comma_wsp? coordinate_sequence)
-func (p *parser) parseCoordinateSequence() ([]float64, error) {
-	var coords []float64
+func (p *parser) parseCoordinateSequence() ([]math64.Float, error) {
+	var coords []math64.Float
 	c, err := p.parseCoordinate()
 	if err != nil {
 		return nil, err
@@ -373,8 +369,8 @@ func (p *parser) parseCoordinateSequence() ([]float64, error) {
 
 // curveto_coordinate_sequence: sequence of coordinate_pair_triplet
 // coordinate_pair_triplet ::= coordinate_pair comma_wsp? coordinate_pair comma_wsp? coordinate_pair
-func (p *parser) parseCoordinatePairTriplet() ([]PathPoint, error) {
-	var pts []PathPoint
+func (p *parser) parseCoordinatePairTriplet() ([]math64.VectorF2, error) {
+	var pts []math64.VectorF2
 	for j := 0; j < 3; j++ {
 		pt, err := p.parseCoordinatePair()
 		if err != nil {
@@ -388,13 +384,13 @@ func (p *parser) parseCoordinatePairTriplet() ([]PathPoint, error) {
 	return pts, nil
 }
 
-func (p *parser) parseCurvetoCoordinateSequence() ([][]PathPoint, error) {
+func (p *parser) parseCurvetoCoordinateSequence() ([][]math64.VectorF2, error) {
 	// one or more triplets
 	first, err := p.parseCoordinatePairTriplet()
 	if err != nil {
 		return nil, err
 	}
-	result := [][]PathPoint{first}
+	result := [][]math64.VectorF2{first}
 	for {
 		before := p.i
 		p.consumeCommaWspOptional()
@@ -419,8 +415,8 @@ func (p *parser) parseCurvetoCoordinateSequence() ([][]PathPoint, error) {
 }
 
 // coordinate_pair_double ::= coordinate_pair comma_wsp? coordinate_pair
-func (p *parser) parseCoordinatePairDouble() ([]PathPoint, error) {
-	var pts []PathPoint
+func (p *parser) parseCoordinatePairDouble() ([]math64.VectorF2, error) {
+	var pts []math64.VectorF2
 	for j := 0; j < 2; j++ {
 		pt, err := p.parseCoordinatePair()
 		if err != nil {
@@ -434,12 +430,12 @@ func (p *parser) parseCoordinatePairDouble() ([]PathPoint, error) {
 	return pts, nil
 }
 
-func (p *parser) parseSmoothCurvetoCoordinateSequence() ([][]PathPoint, error) {
+func (p *parser) parseSmoothCurvetoCoordinateSequence() ([][]math64.VectorF2, error) {
 	first, err := p.parseCoordinatePairDouble()
 	if err != nil {
 		return nil, err
 	}
-	res := [][]PathPoint{first}
+	res := [][]math64.VectorF2{first}
 	for {
 		before := p.i
 		p.consumeCommaWspOptional()
@@ -462,7 +458,7 @@ func (p *parser) parseSmoothCurvetoCoordinateSequence() ([][]PathPoint, error) {
 	return res, nil
 }
 
-func (p *parser) parseQuadraticBezierCoordinateSequence() ([][]PathPoint, error) {
+func (p *parser) parseQuadraticBezierCoordinateSequence() ([][]math64.VectorF2, error) {
 	// similar to smooth curveto: two pairs per element
 	return p.parseSmoothCurvetoCoordinateSequence()
 }
@@ -485,14 +481,22 @@ func (p *parser) parseEllipticalArcArgument() (EllipticalArcArg, error) {
 	}
 	p.consumeCommaWspOptional()
 	// flag
-	large, err := p.parseFlag()
+	largeInt, err := p.parseFlag()
 	if err != nil {
 		return EllipticalArcArg{}, fmt.Errorf("elliptical arc large-arc-flag: %w", err)
 	}
+	large := false
+	if largeInt == 1 {
+		large = true
+	}
 	p.consumeCommaWspOptional()
-	sweep, err := p.parseFlag()
+	sweepInt, err := p.parseFlag()
 	if err != nil {
 		return EllipticalArcArg{}, fmt.Errorf("elliptical arc sweep-flag: %w", err)
+	}
+	sweep := false
+	if sweepInt == 1 {
+		sweep = true
 	}
 	p.consumeCommaWspOptional()
 	pt, err := p.parseCoordinatePair()
@@ -500,8 +504,7 @@ func (p *parser) parseEllipticalArcArgument() (EllipticalArcArg, error) {
 		return EllipticalArcArg{}, fmt.Errorf("elliptical arc end point: %w", err)
 	}
 	return EllipticalArcArg{
-		Rx:    rx,
-		Ry:    ry,
+		R:     math64.VectorF2{X: rx, Y: ry},
 		XAxis: xAxis,
 		Large: large,
 		Sweep: sweep,
@@ -596,13 +599,13 @@ func (p *parser) parseMoveto() ([]PathCommand, error) {
 		cmds = append(cmds, PathCommand{
 			Type:       CmdMoveTo,
 			Relative:   rel,
-			PathPoints: []PathPoint{points[0]},
+			PathPoints: []math64.VectorF2{points[0]},
 		})
 		for j := 1; j < len(points); j++ {
 			cmds = append(cmds, PathCommand{
 				Type:       CmdLineTo,
 				Relative:   rel,
-				PathPoints: []PathPoint{points[j]},
+				PathPoints: []math64.VectorF2{points[j]},
 			})
 		}
 	}
@@ -623,7 +626,7 @@ func (p *parser) parseLineto() ([]PathCommand, error) {
 		cmds = append(cmds, PathCommand{
 			Type:       CmdLineTo,
 			Relative:   rel,
-			PathPoints: []PathPoint{pt},
+			PathPoints: []math64.VectorF2{pt},
 		})
 	}
 	return cmds, nil
@@ -715,7 +718,7 @@ func (p *parser) parseSmoothQuadraticBezierCurveto() ([]PathCommand, error) {
 	}
 	cmds := []PathCommand{}
 	for _, pt := range points {
-		cmds = append(cmds, PathCommand{Type: CmdSmoothQuadraticBezierTo, Relative: rel, PathPoints: []PathPoint{pt}})
+		cmds = append(cmds, PathCommand{Type: CmdSmoothQuadraticBezierTo, Relative: rel, PathPoints: []math64.VectorF2{pt}})
 	}
 	return cmds, nil
 }

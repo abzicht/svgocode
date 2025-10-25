@@ -89,6 +89,10 @@ func ParseTransform(input string) TransformChain {
 			transform = NewSkew(math64.VectorT2[math64.AngDeg]{X: 0, Y: math64.AngDeg(params[0])})
 		default:
 			llog.Errorf("Cannot add transformation %s: Not yet implemented\n", fnName)
+			continue
+		}
+		if nil == transform {
+			llog.Panic("transform is nil!!")
 		}
 
 		transforms = append(transforms, transform)

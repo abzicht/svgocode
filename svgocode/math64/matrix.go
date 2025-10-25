@@ -1,6 +1,8 @@
 package math64
 
 import (
+	"fmt"
+
 	"github.com/abzicht/svgocode/llog"
 )
 
@@ -136,4 +138,26 @@ func (m MatrixF3) VProduct(v VectorF3) VectorF3 {
 func (m MatrixF4) VProduct(v VectorF4) VectorF4 {
 	result := mvProduct(MatrixF(m), []Float{v.X, v.Y, v.Z, v.W})
 	return VectorF4{X: result[0], Y: result[1], Z: result[2], W: result[3]}
+}
+
+func mstring(m MatrixF, dim int) string {
+	var b string
+	for i, _ := range m {
+		b += fmt.Sprintf("%.2f ", m[i])
+		if i%dim == dim-1 {
+			b += "\n"
+		}
+	}
+	return b
+}
+func (m MatrixF2) String() string {
+	return mstring(MatrixF(m), 2)
+}
+
+func (m MatrixF3) String() string {
+	return mstring(MatrixF(m), 3)
+}
+
+func (m MatrixF4) String() string {
+	return mstring(MatrixF(m), 4)
 }

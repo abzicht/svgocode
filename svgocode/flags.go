@@ -16,6 +16,6 @@ func ParseFlags(f *Flags) error {
 
 	parser.LongDescription = description
 	_, err := parser.Parse()
-	llog.SetLevel(f.Verbosity)
+	llog.SetLevel(llog.LogLevel(f.Verbosity))
 	return err
 }

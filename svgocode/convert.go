@@ -22,18 +22,23 @@ func Svg2Gcode(s *svg.SVG, plotterConf *plotter.PlotterConfig, conv convs.Conver
 		if len(svgElementPath) == 0 {
 			continue
 		}
-		pathTransform := svg.TransformChainForPath(svgElementPath)
 		svgElement := svgElementPath[len(svgElementPath)-1]
 		// First, convert the svg objects to individual gcode segments using the
 		// provided converter.
 		if svg.IsLeaf(svgElement) {
-			gcodeOpt := convs.SVGConvert(svgElement, append(plotterTransform, pathTransform...), conv)
+			transformChain := append(plotterTransform, svg.TransformChainForPath(svgElementPath)...)
+			gcodeOpt := convs.SVGConvert(svgElement, transformChain, conv)
 			switch gcodeOpt.(type) {
 			case fun.Some[*gcode.Gcode]:
 				gcodes = append(gcodes, gcodeOpt.GetValue())
 			case fun.None[*gcode.Gcode]:
 			default:
 				llog.Panicf("Unknown option type: %T\n", gcodeOpt)
+			}
+		} else {
+			switch svgElement.(type) {
+			case *svg.Text:
+				llog.Warn("Text elements are not supported and will not be added to gcode. Please convert text to paths.\n")
 			}
 		}
 	}

@@ -2,7 +2,6 @@ package convs
 
 import (
 	"fmt"
-	"math"
 	"strings"
 
 	"github.com/abzicht/svgocode/llog"
@@ -10,23 +9,24 @@ import (
 	"github.com/abzicht/svgocode/svgocode/math64"
 	"github.com/abzicht/svgocode/svgocode/plotter"
 	"github.com/abzicht/svgocode/svgocode/svg"
+	"github.com/abzicht/svgocode/svgocode/svg/svgtransform"
 )
 
-// This code was also produced by AI. Explain that to a Victorian peasant.
-// Not fully revised yet, but will do.
+// This code was partly produced by AI.
 
-func PathCommandsToGcode(commands []svg.PathCommand, g *gcode.Gcode, plotterConf *plotter.PlotterConfig) *gcode.Gcode {
+func PathCommandsToGcode(commands []svg.PathCommand, transformChain svgtransform.TransformChain, g *gcode.Gcode, plotterConf *plotter.PlotterConfig) *gcode.Gcode {
 	//TODO add gcode bounds
 	var b strings.Builder
 
+	tMat := transformChain.ToMatrix()
 	var (
 		zUp   = plotterConf.RetractHeight // pen/tool up height
 		zDown = plotterConf.DrawHeight    // pen/tool down height
-		steps = 20.0                      // number of line segments to approximate curves
+		steps = math64.Float(20.0)        // number of line segments to approximate curves
 	)
 
-	current := svg.PathPoint{X: 0, Y: 0}
-	start := svg.PathPoint{X: 0, Y: 0}
+	current := math64.VectorF2{X: 0, Y: 0}
+	start := math64.VectorF2{X: 0, Y: 0}
 	penDown := false
 
 	// Header
@@ -48,8 +48,8 @@ func PathCommandsToGcode(commands []svg.PathCommand, g *gcode.Gcode, plotterConf
 					x += current.X
 					y += current.Y
 				}
-				fmt.Fprintf(&b, "G0 X%.3f Y%.3f\n", x, y)
-				current = svg.PathPoint{X: x, Y: y}
+				fmt.Fprint(&b, drawPointStr(math64.VectorF2{X: x, Y: y}, true, tMat))
+				current = math64.VectorF2{X: x, Y: y}
 				start = current
 			}
 
@@ -64,8 +64,8 @@ func PathCommandsToGcode(commands []svg.PathCommand, g *gcode.Gcode, plotterConf
 					x += current.X
 					y += current.Y
 				}
-				fmt.Fprintf(&b, "G1 X%.3f Y%.3f\n", x, y)
-				current = svg.PathPoint{X: x, Y: y}
+				fmt.Fprint(&b, drawPointStr(math64.VectorF2{X: x, Y: y}, false, tMat))
+				current = math64.VectorF2{X: x, Y: y}
 			}
 
 		case svg.CmdHLineTo:
@@ -74,11 +74,11 @@ func PathCommandsToGcode(commands []svg.PathCommand, g *gcode.Gcode, plotterConf
 				penDown = true
 			}
 			for _, cx := range cmd.Coordinates {
-				x := float64(cx)
+				x := cx
 				if cmd.Relative {
 					x += current.X
 				}
-				fmt.Fprintf(&b, "G1 X%.3f Y%.3f\n", x, current.Y)
+				fmt.Fprint(&b, drawPointStr(math64.VectorF2{X: x, Y: current.Y}, false, tMat))
 				current.X = x
 			}
 
@@ -88,11 +88,11 @@ func PathCommandsToGcode(commands []svg.PathCommand, g *gcode.Gcode, plotterConf
 				penDown = true
 			}
 			for _, cy := range cmd.Coordinates {
-				y := float64(cy)
+				y := cy
 				if cmd.Relative {
 					y += current.Y
 				}
-				fmt.Fprintf(&b, "G1 X%.3f Y%.3f\n", current.X, y)
+				fmt.Fprint(&b, drawPointStr(math64.VectorF2{X: current.X, Y: y}, false, tMat))
 				current.Y = y
 			}
 
@@ -106,17 +106,14 @@ func PathCommandsToGcode(commands []svg.PathCommand, g *gcode.Gcode, plotterConf
 				p2 := cmd.PathPoints[i+1]
 				p3 := cmd.PathPoints[i+2]
 				if cmd.Relative {
-					p1.X += current.X
-					p1.Y += current.Y
-					p2.X += current.X
-					p2.Y += current.Y
-					p3.X += current.X
-					p3.Y += current.Y
+					p1 = p1.Add(current)
+					p2 = p2.Add(current)
+					p3 = p3.Add(current)
 				}
-				for t := 0.0; t <= 1.0; t += 1.0 / steps {
-					x := cubicBezier(t, current.X, p1.X, p2.X, p3.X)
-					y := cubicBezier(t, current.Y, p1.Y, p2.Y, p3.Y)
-					fmt.Fprintf(&b, "G1 X%.3f Y%.3f\n", x, y)
+				for t := math64.Float(0.0); t <= 1.0; t += 1.0 / steps {
+					x := cubicBezier(math64.Float(t), current.X, p1.X, p2.X, p3.X)
+					y := cubicBezier(math64.Float(t), current.Y, p1.Y, p2.Y, p3.Y)
+					fmt.Fprint(&b, drawPointStr(math64.VectorF2{X: x, Y: y}, false, tMat))
 				}
 				current = p3
 			}
@@ -135,10 +132,10 @@ func PathCommandsToGcode(commands []svg.PathCommand, g *gcode.Gcode, plotterConf
 					p2.X += current.X
 					p2.Y += current.Y
 				}
-				for t := 0.0; t <= 1.0; t += 1.0 / steps {
-					x := quadraticBezier(t, current.X, p1.X, p2.X)
-					y := quadraticBezier(t, current.Y, p1.Y, p2.Y)
-					fmt.Fprintf(&b, "G1 X%.3f Y%.3f\n", x, y)
+				for t := math64.Float(0.0); t <= 1.0; t += 1.0 / steps {
+					x := quadraticBezier(math64.Float(t), current.X, p1.X, p2.X)
+					y := quadraticBezier(math64.Float(t), current.Y, p1.Y, p2.Y)
+					fmt.Fprint(&b, drawPointStr(math64.VectorF2{X: x, Y: y}, false, tMat))
 				}
 				current = p2
 			}
@@ -154,13 +151,13 @@ func PathCommandsToGcode(commands []svg.PathCommand, g *gcode.Gcode, plotterConf
 					to.X += current.X
 					to.Y += current.Y
 				}
-				approximateArc(&b, current, to, a, steps)
+				approximateArc(&b, current, to, a, steps, tMat)
 				current = to
 			}
 
 		case svg.CmdClosePath:
 			if penDown {
-				fmt.Fprintf(&b, "G1 X%.3f Y%.3f\n", start.X, start.Y)
+				fmt.Fprint(&b, drawPointStr(math64.VectorF2{X: start.X, Y: start.Y}, false, tMat))
 				penDown = false
 			}
 			current = start
@@ -177,35 +174,44 @@ func PathCommandsToGcode(commands []svg.PathCommand, g *gcode.Gcode, plotterConf
 	return g
 }
 
+// Create a G0/G1 move instruction to a point that is transformed using the
+// given matrix
+func drawPointStr(point math64.VectorF2, isDrawing bool, tMat *svgtransform.TransformMatrix) string {
+	point = tMat.ApplyP(point)
+	gcmd := "G1"
+	if isDrawing {
+		gcmd = "G0"
+	}
+	return fmt.Sprintf("%s X%.3f Y%.3f\n", gcmd, point.X, point.Y)
+}
+
 // Cubic Bézier interpolation
-func cubicBezier(t, p0, p1, p2, p3 float64) float64 {
+func cubicBezier(t, p0, p1, p2, p3 math64.Float) math64.Float {
 	u := 1 - t
-	return math.Pow(u, 3)*p0 +
-		3*math.Pow(u, 2)*t*p1 +
-		3*u*math.Pow(t, 2)*p2 +
-		math.Pow(t, 3)*p3
+	return u.Pow(3)*p0 +
+		3*u.Pow(2)*t*p1 +
+		3*u*t.Pow(2)*p2 +
+		t.Pow(3)*p3
 }
 
 // Quadratic Bézier interpolation
-func quadraticBezier(t, p0, p1, p2 float64) float64 {
+func quadraticBezier(t, p0, p1, p2 math64.Float) math64.Float {
 	u := 1 - t
 	return u*u*p0 + 2*u*t*p1 + t*t*p2
 }
 
 // Approximate elliptical arc with line segments
-func approximateArc(b *strings.Builder, from, to svg.PathPoint, a svg.EllipticalArcArg, steps float64) {
+func approximateArc(b *strings.Builder, from, to math64.VectorF2, a svg.EllipticalArcArg, steps math64.Float, tMat *svgtransform.TransformMatrix) {
 	// For simplicity: approximate as a simple ellipse arc from 'from' to 'to'
-	rx := float64(a.Rx)
-	ry := float64(a.Ry)
-	startAngle := 0.0
-	endAngle := math.Pi / 2 // placeholder; full arc solving is complex
+	var startAngle math64.AngRad = 0.0
+	endAngle := math64.AngDeg(1).Rad() // placeholder; full arc solving is complex
 
 	for i := 0; i <= int(steps); i++ {
-		t := float64(i) / float64(steps)
+		t := math64.AngRad(i) / math64.AngRad(steps)
 		angle := startAngle + t*(endAngle-startAngle)
-		x := from.X + rx*math.Cos(angle)
-		y := from.Y + ry*math.Sin(angle)
-		fmt.Fprintf(b, "G1 X%.3f Y%.3f\n", x, y)
+		x := from.X + a.R.X*angle.Cos()
+		y := from.Y + a.R.Y*angle.Sin()
+		fmt.Fprint(b, drawPointStr(math64.VectorF2{X: x, Y: y}, false, tMat))
 	}
-	fmt.Fprintf(b, "G1 X%.3f Y%.3f\n", to.X, to.Y)
+	fmt.Fprint(b, drawPointStr(to, false, tMat))
 }

@@ -1,6 +1,8 @@
 package svgtransform
 
-import "github.com/abzicht/svgocode/svgocode/math64"
+import (
+	"github.com/abzicht/svgocode/svgocode/math64"
+)
 
 type TransformMatrix struct {
 	M math64.MatrixF4
@@ -10,6 +12,11 @@ func NewTransformMatrix(m math64.MatrixF4) *TransformMatrix {
 	tMat := new(TransformMatrix)
 	tMat.M = m
 	return tMat
+}
+
+// Create a new matrix that is the product of the two given matrices
+func (tMat *TransformMatrix) Product(tMat2 *TransformMatrix) *TransformMatrix {
+	return NewTransformMatrix(tMat.M.MProduct(tMat2.M))
 }
 
 func (tMat *TransformMatrix) ToMatrix() *TransformMatrix {

@@ -6,17 +6,27 @@ import (
 	"os"
 )
 
+/*
+Author: @abzicht
+
+Log lib for mid-sized codebases.
+Simple to use, offers logging via global and local variables.
+
+*/
+
+type LogLevel int
+
 const (
-	LPanic = -1
-	LFatal = 0
-	LError = 1
-	LWarn  = 2
-	LInfo  = 3
-	LDebug = 4
+	LPanic = LogLevel(-1)
+	LFatal = LogLevel(0)
+	LError = LogLevel(1)
+	LWarn  = LogLevel(2)
+	LInfo  = LogLevel(3)
+	LDebug = LogLevel(4)
 )
 
 type Log struct {
-	level  int
+	level  LogLevel
 	prefix string
 	writer io.Writer
 }
@@ -25,25 +35,21 @@ var logDefault Log = Log{level: LInfo, prefix: "SVGOCODE", writer: os.Stderr}
 
 var log *Log = &logDefault
 
-func SetLogger(l *Log) {
-	log = l
-}
-
-func SetLevel(level int) {
+func (l *Log) SetLevel(level LogLevel) {
 	if level > LDebug {
 		level = LDebug
 	}
 	if level < LFatal {
 		level = LFatal
 	}
-	log.level = level
+	l.level = level
 }
 
-func SetWriter(w io.Writer) {
-	log.writer = w
+func (l *Log) SetWriter(w io.Writer) {
+	l.writer = w
 }
 
-func level2str(level int) string {
+func level2str(level LogLevel) string {
 	switch level {
 	case LPanic:
 		return "Panic"
@@ -61,29 +67,29 @@ func level2str(level int) string {
 	return ""
 }
 
-func (l *Log) tag(level int) string {
+func (l *Log) tag(level LogLevel) string {
 	return fmt.Sprintf("%s[%s]: ", l.prefix, level2str(level))
 }
 
 // Return log string
-func (l *Log) logs(level int, v ...any) string {
+func (l *Log) logs(level LogLevel, v ...any) string {
 	return l.tag(level) + fmt.Sprint(v...)
 }
 
-// Return log (formatted string)
-func (l *Log) logsf(level int, format string, v ...any) string {
+// Return formatted log string
+func (l *Log) logsf(level LogLevel, format string, v ...any) string {
 	return l.tag(level) + fmt.Sprintf(format, v...)
 }
 
 // Log string to file, if level requirement is met
-func (l *Log) log(level int, v ...any) {
+func (l *Log) log(level LogLevel, v ...any) {
 	if l.level >= level {
 		fmt.Fprint(l.writer, l.logs(level, v...))
 	}
 }
 
-// Log (formatted string) to file, if level requirement is met
-func (l *Log) logf(level int, format string, v ...any) {
+// Log formatted string to file, if level requirement is met
+func (l *Log) logf(level LogLevel, format string, v ...any) {
 	if l.level >= level {
 		fmt.Fprint(l.writer, l.logsf(level, format, v...))
 	}
@@ -139,6 +145,22 @@ func (l *Log) Debugf(format string, v ...any) {
 	l.logf(LDebug, format, v...)
 }
 
+// vvv Functions that use the global log variable vvv
+
+func SetLogger(l *Log) {
+	log = l
+}
+
+func SetLevel(level LogLevel) {
+	log.SetLevel(level)
+}
+
+func SetWriter(w io.Writer) {
+	log.SetWriter(w)
+}
+
+// not formatted
+
 func Panic(v ...any) {
 	log.Panic(v...)
 }
@@ -162,6 +184,8 @@ func Info(v ...any) {
 func Debug(v ...any) {
 	log.Debug(v...)
 }
+
+// using format string
 
 func Panicf(format string, v ...any) {
 	log.Panicf(format, v...)
