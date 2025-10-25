@@ -3,7 +3,6 @@ package plotter
 import (
 	"io"
 
-	"github.com/abzicht/svgocode/llog"
 	"github.com/abzicht/svgocode/svgocode/math64"
 	"github.com/abzicht/svgocode/svgocode/svg/svgtransform"
 	"gopkg.in/yaml.v2"
@@ -41,30 +40,10 @@ func InitPlotterConfig(r io.Reader) (*PlotterConfig, error) {
 }
 
 // Create a list of transform commands for the given configuration.
-func (p *PlotterConfig) TransformChain() svgtransform.TransformChain {
+func (p *PlotterConfig) Transform() svgtransform.TransformChain {
 	chain := svgtransform.TransformChain{}
 	if p.MirrorX || p.MirrorY {
 		chain = append(chain, svgtransform.NewMirror(p.MirrorX, p.MirrorY, p.Plate.Center))
 	}
 	return chain
-}
-
-type RuntimeConfig struct {
-	UnitType math64.UnitType
-}
-
-func NewRuntimeConfig() *RuntimeConfig {
-	r := new(RuntimeConfig)
-	r.UnitType = math64.UnitMM
-	return r
-}
-
-func (r *RuntimeConfig) SetUnitType(u math64.UnitType) {
-	switch u {
-	case math64.UnitMM, math64.UnitIN:
-		break
-	default:
-		llog.Panicf("Unsupported unit type (%s). Must be 'mm' or 'in'", u)
-	}
-	r.UnitType = u
 }

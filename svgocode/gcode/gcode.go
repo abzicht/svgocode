@@ -155,3 +155,13 @@ func Join(gcodes []*Gcode, plotterConf *plotter.PlotterConfig) *Gcode {
 	}
 	return g
 }
+
+// Total euclidean distance between the end- and start coordinates of gcode
+// segments. I.e., the distance travelled where nothing is being drawn.
+func TotalDistanceInBetween(gcodes []*Gcode) math64.Float {
+	var dist math64.Float = 0
+	for i, _ := range gcodes[1:] {
+		dist += gcodes[i].EndCoord.DistEuclid(gcodes[i+1].StartCoord)
+	}
+	return dist
+}

@@ -49,6 +49,6 @@ func main() {
 		fmt.Println(err.Error())
 		os.Exit(1)
 	}
-	gcode := svgocode.Svg2Gcode(&parsed_svg, plotterConfig, convs.NewDirect(plotterConfig), ordering.NewGreedy())
+	gcode := svgocode.Svg2Gcode(&parsed_svg, plotterConfig, convs.NewDirect(plotterConfig), ordering.ParseOrdering(ordering.OrderingAlg(f.Ordering)))
 	fmt.Println(gcode.String())
 }

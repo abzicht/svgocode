@@ -6,9 +6,8 @@ import (
 	"github.com/abzicht/svgocode/svgocode/math64"
 )
 
-type shapesVisited map[*gcode.Gcode]bool
-
 // An orderer that performs greedy optimization.
+// Works for big input, but results are most certainly not perfect.
 type Greedy struct {
 }
 
@@ -21,6 +20,7 @@ func remove(g []*gcode.Gcode, i int) []*gcode.Gcode {
 	return g[:len(g)-1]
 }
 
+// Time: O(n^2), Space: O(n)
 func (gr *Greedy) Order(gcodes []*gcode.Gcode) []*gcode.Gcode {
 	if len(gcodes) == 0 {
 		return gcodes
@@ -39,7 +39,7 @@ func (gr *Greedy) Order(gcodes []*gcode.Gcode) []*gcode.Gcode {
 	for len(candidates) > 0 {
 		var bestIndex int = 0
 		var bestDist math64.Float = current.EndCoord.DistEuclid(candidates[bestIndex].StartCoord)
-		for j, candidate := range candidates[1:] {
+		for j, candidate := range candidates {
 			dist := current.EndCoord.DistEuclid(candidate.StartCoord)
 			if bestDist > dist {
 				bestIndex = j

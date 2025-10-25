@@ -15,7 +15,7 @@ import (
 func Svg2Gcode(s *svg.SVG, plotterConf *plotter.PlotterConfig, conv convs.ConverterI, order ordering.OrderingI) *gcode.Gcode {
 	runtConf := plotter.NewRuntimeConfig()
 	runtConf.SetUnitType(s.UserUnit())
-	plotterTransform := plotterConf.TransformChain()
+	plotterTransform := plotterConf.Transform()
 
 	var gcodes []*gcode.Gcode
 	for svgElementPath := range svg.PathSeq(s) {
@@ -44,7 +44,16 @@ func Svg2Gcode(s *svg.SVG, plotterConf *plotter.PlotterConfig, conv convs.Conver
 	}
 	// Then, order the gcode segments, e.g., such that travel distance is
 	// minimized (depends on the given ordering method)
+
+	if llog.GetLevel() >= llog.LDebug {
+		//Only call this function, if we even want to print this info
+		llog.Debugf("Non-drawing travel distance before ordering: %.0f%s\n", gcode.TotalDistanceInBetween(gcodes), runtConf.UnitType)
+	}
 	gcodes = order.Order(gcodes)
+	if llog.GetLevel() >= llog.LDebug {
+		//Only call this function, if we even want to print this info
+		llog.Debugf("Non-drawing travel distance after ordering: %.0f%s\n", gcode.TotalDistanceInBetween(gcodes), runtConf.UnitType)
+	}
 
 	// Finally, add prefix and suffix
 	if len(gcodes) < 1 {

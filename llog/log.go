@@ -155,6 +155,10 @@ func SetLevel(level LogLevel) {
 	log.SetLevel(level)
 }
 
+func GetLevel() LogLevel {
+	return log.level
+}
+
 func SetWriter(w io.Writer) {
 	log.SetWriter(w)
 }

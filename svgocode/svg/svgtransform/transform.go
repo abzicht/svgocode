@@ -4,6 +4,12 @@ import (
 	"github.com/abzicht/svgocode/svgocode/math64"
 )
 
+/* Transform parser & handler. Tries to follow
+https://www.w3.org/TR/css-transforms-1/.
+Offers functionality for summarizing "chains" of transform operations in a
+single 4x4 matrix.
+*/
+
 type TransformCommandType string
 
 const (
