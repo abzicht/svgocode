@@ -18,7 +18,7 @@ func Svg2Gcode(s *svg.SVG, plotterConf *plotter.PlotterConfig, conv convs.Conver
 	plotterTransform := plotterConf.Transform()
 
 	var gcodes []*gcode.Gcode
-	for svgElementPath := range svg.PathSeq(s) {
+	for svgElementPath := range svg.PathSeq(s, true) {
 		if len(svgElementPath) == 0 {
 			continue
 		}

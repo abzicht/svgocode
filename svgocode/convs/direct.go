@@ -26,7 +26,7 @@ func NewDirect(plotterConf *plotter.PlotterConfig) *Direct {
 }
 
 // Add a line that describes the given type and id of the converted svg object
-func (d *Direct) addIdComment(g *gcode.Gcode, type_, id string) {
+func (d *Direct) addIdComment(g *gcode.Gcode, type_ string, id svg.SvgId) {
 	if len(id) == 0 {
 		return
 	}
