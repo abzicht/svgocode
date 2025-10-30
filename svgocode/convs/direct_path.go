@@ -166,6 +166,7 @@ func PathCommandsToGcode(commands []svg.PathCommand, transformChain svgtransform
 		case svg.CmdClosePath:
 			if penDown {
 				fmt.Fprint(&b, drawPointStr(&dCtx, math64.VectorF2{X: start.X, Y: start.Y}, false))
+				fmt.Fprintf(&b, "G0 Z%.3f\n", zUp)
 				penDown = false
 			}
 			current = start
