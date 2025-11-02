@@ -1,6 +1,6 @@
 # SVGOCODE - Yet Another SVG to GCODE Converter
 
-SVGOCODE - /æz wi ˈɡoʊkoʊd/ - converts SVG to GCODE, allowing digital imagery
+SVGOCODE - _/æz wi ˈɡoʊkoʊd/_ - converts SVG to GCODE, allowing digital imagery
 to be brought to life via pen-plotters, cutters, etc. First and foremost, it is
 intended to be used for modified 3D printers.
 
