@@ -6,7 +6,7 @@ import (
 	"github.com/abzicht/svgocode/svgocode/gcode"
 )
 
-// An orderer that changes nothing
+// Produce the reverse order (last elements first)
 type Lifo struct {
 }
 
