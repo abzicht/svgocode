@@ -1,7 +1,15 @@
 # SVGOCODE - Yet Another SVG to GCODE Converter
 
-Parses SVG and tries to figure out, what the image should look like in GCODE
-such that, e.g. penplotters can draw a picture.
+SVGOCODE - /æz wi ˈɡoʊkoʊd/ - converts SVG to GCODE, allowing digital imagery
+to be brought to life via pen-plotters, cutters, etc. First and foremost, it is
+intended to be used for modified 3D printers.
+
+SVGOCODE can deal with everything\* between complete SVG files and single SVG
+elements. The support for custom plotter profiles enables adoption of various
+devices and quick file conversion, once a suitable profile is found.
+
+> \* The SVG standard is only partially implemented. For the supported feature
+> set, see below.
 
 ## Features
 
