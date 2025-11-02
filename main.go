@@ -88,7 +88,7 @@ func main() {
 		llog.Panic(err.Error())
 	}
 	// Convert to *gcode.Gcode
-	gcode_ := svgocode.Svg2Gcode(&parsed_svg, plotterConfig, conv.NewDirect(plotterConfig), ordering.ParseOrdering(ordering.OrderingAlg(f.Ordering)))
+	gcode_ := svgocode.Svg2Gcode(&parsed_svg, plotterConfig, conv.NewDirect(), ordering.ParseOrdering(ordering.OrderingAlg(f.Ordering)))
 
 	var writer io.Writer = os.Stdout
 	if len(f.GcodeFile) > 0 {

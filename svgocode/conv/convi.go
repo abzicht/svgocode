@@ -3,12 +3,14 @@ package conv
 import (
 	"github.com/abzicht/gogenericfunc/fun"
 	"github.com/abzicht/svgocode/llog"
+	"github.com/abzicht/svgocode/svgocode/conf"
 	"github.com/abzicht/svgocode/svgocode/gcode"
 	"github.com/abzicht/svgocode/svgocode/svg"
 	"github.com/abzicht/svgocode/svgocode/svg/svgtransform"
 )
 
 type ConverterI interface {
+	SetConfig(*ConvConf)
 	Path(p *svg.Path, transformChain svgtransform.TransformChain) fun.Option[*gcode.Gcode]
 	Line(l *svg.Line, transformChain svgtransform.TransformChain) fun.Option[*gcode.Gcode]
 	Rect(c *svg.Rect, transformChain svgtransform.TransformChain) fun.Option[*gcode.Gcode]
@@ -16,6 +18,25 @@ type ConverterI interface {
 	Ellipse(c *svg.Ellipse, transformChain svgtransform.TransformChain) fun.Option[*gcode.Gcode]
 	Polygon(p *svg.Polygon, transformChain svgtransform.TransformChain) fun.Option[*gcode.Gcode]
 	Polyline(p *svg.Polyline, transformChain svgtransform.TransformChain) fun.Option[*gcode.Gcode]
+}
+
+// ConvConf: The greatest type name so far
+type ConvConf struct {
+	plotter *conf.PlotterConfig
+	runtime *conf.RuntimeConfig
+}
+
+func NewConvConf(plotterConf *conf.PlotterConfig, runtConf *conf.RuntimeConfig) *ConvConf {
+	c := new(ConvConf)
+	c.plotter = plotterConf
+	c.runtime = runtConf
+	return c
+}
+
+// Equip a given converter with configuration
+func WithConfig(converter ConverterI, config *ConvConf) ConverterI {
+	converter.SetConfig(config)
+	return converter
 }
 
 // Convert using the converter, based on the element's type

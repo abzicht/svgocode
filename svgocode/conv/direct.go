@@ -5,7 +5,6 @@ import (
 
 	"github.com/abzicht/gogenericfunc/fun"
 	"github.com/abzicht/svgocode/llog"
-	"github.com/abzicht/svgocode/svgocode/conf"
 	"github.com/abzicht/svgocode/svgocode/gcode"
 	"github.com/abzicht/svgocode/svgocode/math64"
 	"github.com/abzicht/svgocode/svgocode/svg"
@@ -14,15 +13,19 @@ import (
 
 // Direct conversion to gcode paths, no filling of bodies
 type Direct struct {
-	plotterConf *conf.PlotterConfig
-	ins         *gcode.Ins
+	conf *ConvConf
+	ins  *gcode.Ins
 }
 
-func NewDirect(plotterConf *conf.PlotterConfig) *Direct {
+// Do not use the returned *Direct before calling SetConfig on it.
+func NewDirect() *Direct {
 	d := new(Direct)
-	d.plotterConf = plotterConf
-	d.ins = gcode.NewIns(plotterConf)
 	return d
+}
+
+func (d *Direct) SetConfig(config *ConvConf) {
+	d.conf = config
+	d.ins = gcode.NewIns(d.conf.plotter)
 }
 
 // Add a line that describes the given type and id of the converted svg object
@@ -41,7 +44,7 @@ func (d *Direct) PathStr(g *gcode.Gcode, pathStr string, transformChain svgtrans
 	if err != nil {
 		llog.Panicf("Failed to parse SVG path: %s. Path string: '%s'\n", err.Error(), pathStr)
 	}
-	g = PathCommandsToGcode(cmds, transformChain, g, d.plotterConf)
+	g = PathCommandsToGcode(cmds, transformChain, g, d.conf.plotter)
 	return fun.NewSome[*gcode.Gcode](g)
 }
 
@@ -65,8 +68,8 @@ func (d *Direct) Line(l *svg.Line, transformChain svgtransform.TransformChain) f
 	g.BoundsMax.X = p1.X
 	g.BoundsMax.Y = p1.Y
 	// Actual bounds values will be updated by move operation
-	g.StartCoord = math64.VectorF3{X: p1.X, Y: p1.Y, Z: d.plotterConf.DrawHeight}
-	d.ins.Move(g, g.StartCoord, d.plotterConf.DrawSpeed)
+	g.StartCoord = math64.VectorF3{X: p1.X, Y: p1.Y, Z: d.conf.plotter.DrawHeight}
+	d.ins.Move(g, g.StartCoord, d.conf.plotter.DrawSpeed)
 	d.ins.Draw(g, math64.VectorF2{X: p2.X, Y: p2.Y})
 	return fun.NewSome[*gcode.Gcode](g)
 }
@@ -99,8 +102,8 @@ func (d *Direct) Circle(c *svg.Circle, transformChain svgtransform.TransformChai
 	g.BoundsMax.X = c.CX + c.R
 	g.BoundsMax.Y = c.CY + c.R
 	// Start at the top of the circle
-	g.StartCoord = math64.VectorF3{X: c.CX, Y: c.CY - c.R, Z: d.plotterConf.DrawHeight}
-	d.ins.Move(g, g.StartCoord, d.plotterConf.DrawSpeed)
+	g.StartCoord = math64.VectorF3{X: c.CX, Y: c.CY - c.R, Z: d.conf.plotter.DrawHeight}
+	d.ins.Move(g, g.StartCoord, d.conf.plotter.DrawSpeed)
 	d.ins.DrawCircle(g, math64.VectorF2{X: 0, Y: c.R}, c.R, true)
 	return fun.NewSome[*gcode.Gcode](g)
 }
@@ -122,8 +125,8 @@ func (d *Direct) Rect(r *svg.Rect, transformChain svgtransform.TransformChain) f
 	p3 := tMatrix.ApplyP(math64.VectorF2{X: r.X + r.Width, Y: r.Y + r.Height})
 	p4 := tMatrix.ApplyP(math64.VectorF2{X: r.X, Y: r.Y + r.Height})
 	d.addIdComment(g, "Rect", r.Id)
-	g.StartCoord = math64.VectorF3{X: p1.X, Y: p1.Y, Z: d.plotterConf.DrawHeight}
-	d.ins.Move(g, g.StartCoord, d.plotterConf.DrawSpeed)
+	g.StartCoord = math64.VectorF3{X: p1.X, Y: p1.Y, Z: d.conf.plotter.DrawHeight}
+	d.ins.Move(g, g.StartCoord, d.conf.plotter.DrawSpeed)
 	d.ins.Draw(g, math64.VectorF2{X: p2.X, Y: p2.Y}) // to the right
 	d.ins.Draw(g, math64.VectorF2{X: p3.X, Y: p3.Y}) // down
 	d.ins.Draw(g, math64.VectorF2{X: p4.X, Y: p4.Y}) // to the left

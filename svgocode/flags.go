@@ -11,7 +11,7 @@ type Flags struct {
 	GcodeFile             string `short:"g" long:"gcode" description:"File that GCODE will be written to (in place of STDOUT)"`
 	PlotterConfigFile     string `short:"p" long:"plotter-config" description:"YAML-encoded config file for the plotter that is to be used."`
 	PlotterConfigTemplate bool   `long:"plotter-config-template" description:"Print an exemplary plotter configuration file in YAML-encoding (cf. flag --plotter-config)"`
-	Ordering              string `short:"o" long:"ordering-algoritm" description:"Algorithm for finding a GCODE segment order. Available algorithms: '2opt' (perfect result; for small input), 'greedy' (not perfect; for large input), and 'none' (skip ordering)." default:"2opt"`
+	Ordering              string `short:"o" long:"ordering-algoritm" description:"Algorithm for finding a GCODE segment order. Available algorithms: '2opt' (perfect result; for small input), 'greedy' (not perfect; for large input), 'reverse' (draw last elements first), and 'none' (skip ordering)." default:"2opt"`
 }
 
 func ParseFlags(f *Flags) error {

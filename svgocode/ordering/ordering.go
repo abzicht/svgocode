@@ -11,6 +11,7 @@ const (
 	OrderingAlgTwoOpt = OrderingAlg("2opt")
 	OrderingAlgGreedy = OrderingAlg("greedy")
 	OrderingAlgNone   = OrderingAlg("none")
+	OrderingAlgLifo   = OrderingAlg("reverse")
 )
 
 type OrderingI interface {
@@ -27,6 +28,8 @@ func ParseOrdering(alg OrderingAlg) OrderingI {
 		return NewGreedy()
 	case OrderingAlgNone:
 		return NewNone()
+	case OrderingAlgLifo:
+		return NewLifo()
 	default:
 		llog.Panicf("Unknown ordering algorithm: '%s'", alg)
 		return nil

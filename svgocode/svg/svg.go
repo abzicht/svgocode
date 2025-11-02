@@ -15,10 +15,28 @@ type SVGElement interface {
 	SVGPresentation
 	ID() SvgId
 	Children() []SVGElement
+	Root() SVGElement
+	SetRoot(SVGElement)
 }
 
 type SVGShapeElement interface {
 	//Position() math64.VectorF2
+}
+
+type SVGRoot struct {
+	root SVGElement
+}
+
+func (s *SVGRoot) Root() SVGElement {
+	return s.root
+}
+
+func (s *SVGRoot) SetRoot(root SVGElement) {
+	s.root = root
+}
+
+type SVGCore struct {
+	SVGRoot
 }
 
 type SVGElements struct {
@@ -43,6 +61,7 @@ func (s *SVGElements) Clone() *SVGElements {
 	return s2
 }
 
+// Produce a TransformChain with all transform operations contained in a given path
 func TransformChainForPath(path []SVGElement) svgtransform.TransformChain {
 	chain := svgtransform.TransformChain{}
 	for _, element := range path {
@@ -129,6 +148,7 @@ type SVG struct {
 	Y       string   `xml:"y,attr"`
 	Width   string   `xml:"width,attr"`
 	Height  string   `xml:"height,attr"`
+	SVGCore
 	SVGCoreAttributes
 	SVGPresentationTransform
 	SVGElements
@@ -151,6 +171,7 @@ func (s *SVG) CloneSVGElement() SVGElement {
 	return s.Clone()
 }
 
+// Determine the unit defined in the SVG's attributes
 func (s *SVG) UserUnit() (unit math64.UnitLength) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -160,17 +181,17 @@ func (s *SVG) UserUnit() (unit math64.UnitLength) {
 	}()
 	if len(s.Width) > 0 {
 		_, unit = math64.NumberUnit(s.Width)
-		return unit
 	} else if len(s.Height) > 0 {
 		_, unit = math64.NumberUnit(s.Height)
-		return unit
 	} else {
 		llog.Warn("Could not determine SVG's unit type. Assuming millimeters. Verify produced gcode!\n")
+		unit = math64.UnitMM
 	}
 	return
 }
 
 type Tspan struct {
+	SVGCore
 	SVGCoreAttributes
 	SVGPresentationTransform
 	X           math64.Float `xml:"x,attr"`
@@ -197,6 +218,7 @@ func (t *Tspan) Children() []SVGElement {
 }
 
 type Text struct {
+	SVGCore
 	SVGCoreAttributes
 	SVGPresentationTransform
 	Tspan *Tspan       `xml:"tspan,attr"`
@@ -226,6 +248,7 @@ func (t *Text) Children() []SVGElement {
 }
 
 type Defs struct {
+	SVGCore
 	SVGCoreAttributes
 	SVGPresentationTransform
 	SVGElements
@@ -244,6 +267,7 @@ func (d *Defs) CloneSVGElement() SVGElement {
 }
 
 type Grouping struct {
+	SVGCore
 	SVGCoreAttributes
 	SVGPresentationTransform
 	SVGElements
@@ -262,6 +286,7 @@ func (g *Grouping) CloneSVGElement() SVGElement {
 }
 
 type ALink struct {
+	SVGCore
 	SVGCoreAttributes
 	SVGPresentationTransform
 	SVGLinkAttributes
@@ -282,6 +307,7 @@ func (a *ALink) CloneSVGElement() SVGElement {
 }
 
 type Use struct {
+	SVGCore
 	SVGCoreAttributes
 	SVGPresentationTransform
 	SVGLinkAttributes
@@ -320,6 +346,7 @@ func (u *Use) GetRefElement(sMap SvgIdMap) SVGElement {
 }
 
 type Path struct {
+	SVGCore
 	SVGCoreAttributes
 	SVGPresentationTransform
 	D string `xml:"d,attr"`
@@ -342,6 +369,7 @@ func (p *Path) Children() []SVGElement {
 }
 
 type Line struct {
+	SVGCore
 	SVGCoreAttributes
 	SVGPresentationTransform
 	X1 math64.Float `xml:"x1,attr"`
@@ -370,6 +398,7 @@ func (s *Line) Children() []SVGElement {
 }
 
 type Rect struct {
+	SVGCore
 	SVGCoreAttributes
 	SVGPresentationTransform
 	X      math64.Float `xml:"x,attr"`
@@ -402,6 +431,7 @@ func (r *Rect) Children() []SVGElement {
 }
 
 type Circle struct {
+	SVGCore
 	SVGCoreAttributes
 	SVGPresentationTransform
 	CX math64.Float `xml:"cx,attr"`
@@ -428,6 +458,7 @@ func (c *Circle) Children() []SVGElement {
 }
 
 type Ellipse struct {
+	SVGCore
 	SVGCoreAttributes
 	SVGPresentationTransform
 	CX math64.Float `xml:"cx,attr"`
@@ -456,6 +487,7 @@ func (e *Ellipse) Children() []SVGElement {
 }
 
 type Polygon struct {
+	SVGCore
 	SVGCoreAttributes
 	SVGPresentationTransform
 	P string `xml:"points,attr"`
@@ -482,6 +514,7 @@ func (p *Polygon) Points() []math64.VectorF2 {
 }
 
 type Polyline struct {
+	SVGCore
 	SVGCoreAttributes
 	SVGPresentationTransform
 	P string `xml:"points,attr"`

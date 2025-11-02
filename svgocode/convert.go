@@ -15,10 +15,12 @@ import (
 func Svg2Gcode(s *svg.SVG, plotterConf *conf.PlotterConfig, converter conv.ConverterI, order ordering.OrderingI) *gcode.Gcode {
 	runtConf := conf.NewRuntimeConfig()
 	runtConf.SetUnitLength(s.UserUnit())
+	converter = conv.WithConfig(converter, conv.NewConvConf(plotterConf, runtConf))
+
 	plotterTransform := plotterConf.Transform()
 
 	var gcodes []*gcode.Gcode
-	for svgElementPath := range svg.PathSeq(s, true) {
+	for svgElementPath := range svg.PathSeq(s) {
 		if len(svgElementPath) == 0 {
 			continue
 		}
