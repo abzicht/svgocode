@@ -1,4 +1,5 @@
 target=svgocode
+package=github.com/abzicht/svgocode
 builddir=build
 
 BUILDLDFLAGS?=-ldflags="-s -w"
@@ -8,7 +9,7 @@ TESTFLAGS?=
 all: doc build
 
 install:
-	go install -ldflags="$(BUILDLDFLAGS)" $(target)
+	go install $(BUILDLDFLAGS) $(package)
 
 build:
 	-rm $(builddir)/*
@@ -29,11 +30,11 @@ run: build
 
 dev: build-dev
 	# Run with debug info
-	DEBUG=TRUE ./$(builddir)/$(target) -v 5
+	./$(builddir)/$(target) -v 5
 
 gdb: build-dev
 	# Run via GDB
-	DEBUG=TRUE gdb $(builddir)/$(target)
+	gdb $(builddir)/$(target)
 
 clean:
 	# Remove temporary files

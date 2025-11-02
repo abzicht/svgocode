@@ -151,7 +151,7 @@ func (s *SVG) CloneSVGElement() SVGElement {
 	return s.Clone()
 }
 
-func (s *SVG) UserUnit() (unit math64.UnitType) {
+func (s *SVG) UserUnit() (unit math64.UnitLength) {
 	defer func() {
 		if r := recover(); r != nil {
 			llog.Warnf("Failed to determine SVG's unit type based on width/height: '%s'. Assuming millimeters. Verify produced gcode!\n", r)
@@ -165,7 +165,7 @@ func (s *SVG) UserUnit() (unit math64.UnitType) {
 		_, unit = math64.NumberUnit(s.Height)
 		return unit
 	} else {
-		llog.Panic("Could not determine SVG's unit type. Assuming millimeters. Verify produced gcode!\n")
+		llog.Warn("Could not determine SVG's unit type. Assuming millimeters. Verify produced gcode!\n")
 	}
 	return
 }
@@ -305,17 +305,18 @@ func (u *Use) CloneSVGElement() SVGElement {
 
 // Return the element referenced by the use element (if its id can be found in
 // the given map).
-func (u *Use) GetRefElement(idMap SvgIdMap) SVGElement {
+func (u *Use) GetRefElement(sMap SvgIdMap) SVGElement {
 	href := strings.TrimLeft(u.GetHref(), " \n\r\t")
 
 	if !strings.HasPrefix(href, "#") {
 		llog.Panicf("Unsupported HREF value: '%s'. Value must start with '#', i.e., reference another tag.", u.GetHref())
 	}
-	el, ok := idMap[SvgId(href[1:])]
-	if !ok {
-		llog.Panicf("Failed to find element with id '%s' (referenced by 'use' with id '%s')", href, u.Id)
+	el, ok := sMap[SvgId(href[1:])]
+	if ok {
+		return el
 	}
-	return el
+	llog.Panicf("Failed to find element with id '%s' (referenced by 'use' with id '%s')", href, u.Id)
+	return nil
 }
 
 type Path struct {

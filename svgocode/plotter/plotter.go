@@ -2,19 +2,20 @@ package plotter
 
 import (
 	"io"
+	"strings"
 
 	"github.com/abzicht/svgocode/svgocode/math64"
 	"github.com/abzicht/svgocode/svgocode/svg/svgtransform"
-	"gopkg.in/yaml.v2"
+	"gopkg.in/yaml.v3"
 )
 
 type Plate struct {
 	// Center coordinates
 	Center math64.VectorF2 `yaml:"center"`
 	// Minimum coordinates
-	Min math64.VectorF3 `yaml:"max"`
+	Min math64.VectorF3 `yaml:"min"`
 	// Maximum coordinates
-	Max math64.VectorF3 `yaml:"min"`
+	Max math64.VectorF3 `yaml:"max"`
 }
 
 type PlotterConfig struct {
@@ -26,9 +27,11 @@ type PlotterConfig struct {
 	DrawSpeed     math64.Speed `yaml:"draw-speed"`
 	RetractSpeed  math64.Speed `yaml:"retract-speed"`
 	// RemoveComments: Strip produced gcode from all comments
-	RemoveComments bool `yaml:"remove-comments"`
-	MirrorX        bool `yaml:"mirror-x-axis"`
-	MirrorY        bool `yaml:"mirror-y-axis"`
+	RemoveComments bool            `yaml:"remove-comments"`
+	MirrorX        bool            `yaml:"mirror-x-axis"`
+	MirrorY        bool            `yaml:"mirror-y-axis"`
+	PenOffset      math64.VectorF2 `yaml:"pen-offset"` // Pen may not be at [X: 0, Y: 0], but instead mounted with an offset.
+	yamlPrefix     string
 }
 
 // Read a PlotterConfig struct from a reader in YAML-format and return it.
@@ -45,5 +48,17 @@ func (p *PlotterConfig) Transform() svgtransform.TransformChain {
 	if p.MirrorX || p.MirrorY {
 		chain = append(chain, svgtransform.NewMirror(p.MirrorX, p.MirrorY, p.Plate.Center))
 	}
+	if !p.PenOffset.Equal(math64.VectorF2{X: 0, Y: 0}) {
+		chain = append(chain, svgtransform.NewTranslate(p.PenOffset))
+	}
 	return chain
+}
+
+func (p *PlotterConfig) YAML(indentSpaces int) string {
+	var b strings.Builder
+	b.WriteString(p.yamlPrefix)
+	enc := yaml.NewEncoder(&b)
+	enc.SetIndent(indentSpaces)
+	enc.Encode(p)
+	return b.String()
 }

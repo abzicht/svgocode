@@ -11,6 +11,10 @@ import (
 
 type SvgId string
 
+func (s SvgId) Equal(s2 SvgId) bool {
+	return s == s2
+}
+
 type SVGCoreAttributes struct {
 	Id    SvgId  `xml:"id,attr"`
 	Class string `xml:"class,attr"`

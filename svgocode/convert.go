@@ -14,7 +14,7 @@ import (
 // Convert an SVG object to gcode instructions
 func Svg2Gcode(s *svg.SVG, plotterConf *plotter.PlotterConfig, conv convs.ConverterI, order ordering.OrderingI) *gcode.Gcode {
 	runtConf := plotter.NewRuntimeConfig()
-	runtConf.SetUnitType(s.UserUnit())
+	runtConf.SetUnitLength(s.UserUnit())
 	plotterTransform := plotterConf.Transform()
 
 	var gcodes []*gcode.Gcode
@@ -47,12 +47,12 @@ func Svg2Gcode(s *svg.SVG, plotterConf *plotter.PlotterConfig, conv convs.Conver
 
 	if llog.GetLevel() >= llog.LDebug {
 		//Only call this function, if we even want to print this info
-		llog.Debugf("Non-drawing travel distance before ordering: %.0f%s\n", gcode.TotalDistanceInBetween(gcodes), runtConf.UnitType)
+		llog.Debugf("Non-drawing travel distance before ordering: %.0f%s\n", gcode.TotalDistanceInBetween(gcodes), runtConf.UnitLength)
 	}
 	gcodes = order.Order(gcodes)
 	if llog.GetLevel() >= llog.LDebug {
 		//Only call this function, if we even want to print this info
-		llog.Debugf("Non-drawing travel distance after ordering: %.0f%s\n", gcode.TotalDistanceInBetween(gcodes), runtConf.UnitType)
+		llog.Debugf("Non-drawing travel distance after ordering: %.0f%s\n", gcode.TotalDistanceInBetween(gcodes), runtConf.UnitLength)
 	}
 
 	// Finally, add prefix and suffix
@@ -82,7 +82,7 @@ func NewGcodePrefix(plotterConf *plotter.PlotterConfig, runtConf *plotter.Runtim
 	g := body.CopyMeta()
 	g.AppendCode(plotterConf.GcodePrefix)
 	ins.AddComment(g, "--- SVGOCODE START ---")
-	ins.SetUnit(g, runtConf.UnitType)
+	ins.SetUnit(g, runtConf.UnitLength)
 	ins.SetExtrusion(g, 0, true)
 	ins.SetExtrusion(g, 0, false)
 	ins.SetSpeed(g, plotterConf.RetractSpeed, false)

@@ -27,7 +27,7 @@ func (ins *Ins) AddComment(g *Gcode, comment string) *Gcode {
 }
 
 // Set unit
-func (ins *Ins) SetUnit(g *Gcode, u math64.UnitType) *Gcode {
+func (ins *Ins) SetUnit(g *Gcode, u math64.UnitLength) *Gcode {
 	var gcmd string = "G21"
 	switch u {
 	case math64.UnitMM:

@@ -11,6 +11,7 @@ import (
 	"github.com/abzicht/svgocode/svgocode/ordering"
 	"github.com/abzicht/svgocode/svgocode/plotter"
 	"github.com/abzicht/svgocode/svgocode/svg"
+	"github.com/jessevdk/go-flags"
 )
 
 func main() {
@@ -21,8 +22,22 @@ func main() {
 
 	var f svgocode.Flags
 	err := svgocode.ParseFlags(&f)
-	if err != nil {
+	switch err.(type) {
+	case *flags.Error:
+		switch err.(*flags.Error).Type {
+		case flags.ErrHelp:
+			return
+		default:
+			log.Fatal(err.Error())
+		}
+	case nil:
+		break
+	default:
 		log.Fatal(err.Error())
+	}
+	if f.PlotterConfigTemplate {
+		fmt.Println(plotter.PlotterConfigLongerLK5ProDefault().YAML(4))
+		return
 	}
 	var plotterConfig *plotter.PlotterConfig
 	if len(f.PlotterConfigFile) > 0 {
@@ -46,8 +61,7 @@ func main() {
 	decoder := svg.NewDecoder(os.Stdin)
 	err = decoder.Decode(&parsed_svg)
 	if err != nil {
-		fmt.Println(err.Error())
-		os.Exit(1)
+		llog.Panic(err.Error())
 	}
 	gcode := svgocode.Svg2Gcode(&parsed_svg, plotterConfig, convs.NewDirect(plotterConfig), ordering.ParseOrdering(ordering.OrderingAlg(f.Ordering)))
 	fmt.Println(gcode.String())

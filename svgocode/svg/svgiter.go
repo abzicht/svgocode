@@ -33,7 +33,10 @@ func Seq(s SVGElement) iter.Seq[SVGElement] {
 	}
 }
 
-func recursePath(yield func([]SVGElement) bool, resolveUses bool, currentPath []SVGElement, svgElements ...SVGElement) bool {
+// Sub function of PathSeq. Iterates over all svg elements recursively.
+// Resolves 'use' references, if resolveUses is true and sMap holds the
+// referenced element.
+func recursePath(yield func([]SVGElement) bool, resolveUses bool, sMap SvgIdMap, currentPath []SVGElement, svgElements ...SVGElement) bool {
 	for _, s := range svgElements {
 		if resolveUses {
 			switch s.(type) {
@@ -44,10 +47,9 @@ func recursePath(yield func([]SVGElement) bool, resolveUses bool, currentPath []
 				if len(currentPath) == 0 {
 					llog.Panicf("Cannot resolve 'use' tag's reference due to missing root node")
 				}
-				idMap := SvgToMap(currentPath[0])
-				refElement := s.(*Use).GetRefElement(idMap).CloneSVGElement()
+				refElement := s.(*Use).GetRefElement(sMap).CloneSVGElement()
 				refElement.AppendTransform(fmt.Sprintf("translate(%f, %f)", s.(*Use).X, s.(*Use).Y), true)
-				if !recursePath(yield, resolveUses, currentPath, refElement) {
+				if !recursePath(yield, resolveUses, sMap, currentPath, refElement) {
 					return false
 				}
 				continue
@@ -60,7 +62,7 @@ func recursePath(yield func([]SVGElement) bool, resolveUses bool, currentPath []
 		}
 		children := s.Children()
 		if len(children) != 0 {
-			if !recursePath(yield, resolveUses, path, children...) {
+			if !recursePath(yield, resolveUses, sMap, path, children...) {
 				return false
 			}
 		}
@@ -69,11 +71,16 @@ func recursePath(yield func([]SVGElement) bool, resolveUses bool, currentPath []
 }
 
 // Iterate over all children of the given element. If resolveUses is true,
-// "use" tags are resolved to the referenced path and path that contain "defs"
-// tags are skipped. Yields all paths from root to sub-nodes (including
-// non-leafs and a path that only contains the root node)
+// "use" tags are resolved to the referenced path (referenced path must be
+// present in s); paths that contain "defs" tags are skipped. Yields all paths
+// from root to sub-nodes (including non-leafs and a path that only contains
+// the root node)
 func PathSeq(s SVGElement, resolveUses bool) iter.Seq[[]SVGElement] {
+	var sMap SvgIdMap
+	if resolveUses {
+		sMap = SvgToMap(s)
+	}
 	return func(yield func([]SVGElement) bool) {
-		recursePath(yield, resolveUses, []SVGElement{}, s)
+		recursePath(yield, resolveUses, sMap, []SVGElement{}, s)
 	}
 }

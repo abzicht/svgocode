@@ -31,6 +31,12 @@ G1 X0 Y300 ;Present print
 M84 X Y E ;Disable all steppers but Z
 `
 
+var longerLK5ProYamlPrefix string = `
+# SVGOCODE plotter configuration template.
+# Adjust values to match the parameters of your device (3D printer, etc.).
+# Specify the configuration file via --plotter-config.
+`
+
 // Return the default/recommended PlotterConfig for the 3D printer LONGER LK5 PRO
 func PlotterConfigLongerLK5ProDefault() *PlotterConfig {
 	p := new(PlotterConfig)
@@ -48,5 +54,7 @@ func PlotterConfigLongerLK5ProDefault() *PlotterConfig {
 	p.RemoveComments = false
 	p.MirrorX = false
 	p.MirrorY = true
+	p.PenOffset = math64.VectorF2{X: 47, Y: 30}
+	p.yamlPrefix = longerLK5ProYamlPrefix
 	return p
 }
