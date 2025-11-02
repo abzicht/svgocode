@@ -24,12 +24,17 @@ make install
 
 ## Use & I/O
 
-SVGOCODE expects SVG-formatted input from `STDIN`. During normal use, it writes
-GCODE to `STDOUT`, all auxiliary information is written to `STDERR`.
+SVGOCODE expects SVG-formatted input from `STDIN` (or from files provided with
+`-s`). It writes GCODE to `STDOUT` (or to files provided with `-g`), all
+auxiliary information is written to `STDERR`.
 
 To convert SVG files to GCODE files, use `svgocode` as follows:
+
 ```bash
+# a) STDIN / STDOUT:
 cat drawing.svg | svgocode > drawing.gcode
+# b) via flags:
+svgocode -s drawing.svg -g drawing.gcode
 ```
 
 ## Development
