@@ -81,7 +81,7 @@ pen-offset:          # Offset with that the pen is mounted on the printer/plotte
 ## Library
 
 SVGOCODE can be easily used as library, both for parsing SVG and for GCODE
-conversion. `main.go` may give you a hint on how to use the library in own
+conversion. `main.go` may give you a hint on how to use the library in your own
 projects:
 
 ```go
@@ -103,18 +103,19 @@ projects:
 
 ## Troubleshoot & Disclaimer
 
-So far, SVGOCODE is the creation of one person (@abzicht). The SVG parser was
-written by one person, just as the conversion methods were.
+So far, SVGOCODE is the creation of one person
+([@abzicht](https://github.com/abzicht)). The SVG parser was written by one
+person, just as the conversion methods were.
 
 As such, SVGOCODE
-can do a whole lot, but is also quite limited. E.g., SVGOCODE cannot yet
+can do a whole lot, but it is also quite limited. E.g., SVGOCODE cannot yet
 
 * convert `text`/`tspan` elements,
 * account for `transform-origin`/`transform-box`,
 * guarantee correctness of complex `transform` hierarchies,
 * work with embedded `svg` elements,
 * convert `sodipodi` / Inkscape attributes,
-* non-local hyperlinks (`href` that do not point to elements inside the
+* resolve non-local hyperlinks (`href` that do not point to elements inside the
   provided `svg` structure), or
 * work with strange length units (`pt`, `px`).
 
