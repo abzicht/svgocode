@@ -4,17 +4,17 @@ import (
 	"fmt"
 
 	"github.com/abzicht/svgocode/llog"
+	"github.com/abzicht/svgocode/svgocode/conf"
 	"github.com/abzicht/svgocode/svgocode/math64"
-	"github.com/abzicht/svgocode/svgocode/plotter"
 )
 
 //Instructions
 
 type Ins struct {
-	plotterConf *plotter.PlotterConfig
+	plotterConf *conf.PlotterConfig
 }
 
-func NewIns(plotterConf *plotter.PlotterConfig) *Ins {
+func NewIns(plotterConf *conf.PlotterConfig) *Ins {
 	ins := new(Ins)
 	ins.plotterConf = plotterConf
 	return ins

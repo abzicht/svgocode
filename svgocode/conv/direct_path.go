@@ -1,13 +1,13 @@
-package convs
+package conv
 
 import (
 	"fmt"
 	"strings"
 
 	"github.com/abzicht/svgocode/llog"
+	"github.com/abzicht/svgocode/svgocode/conf"
 	"github.com/abzicht/svgocode/svgocode/gcode"
 	"github.com/abzicht/svgocode/svgocode/math64"
-	"github.com/abzicht/svgocode/svgocode/plotter"
 	"github.com/abzicht/svgocode/svgocode/svg"
 	"github.com/abzicht/svgocode/svgocode/svg/svgtransform"
 )
@@ -15,12 +15,12 @@ import (
 type directPathContext struct {
 	g           *gcode.Gcode
 	tMat        *svgtransform.TransformMatrix
-	plotterConf *plotter.PlotterConfig
+	plotterConf *conf.PlotterConfig
 }
 
 // This code was partly produced by AI.
 
-func PathCommandsToGcode(commands []svg.PathCommand, transformChain svgtransform.TransformChain, g *gcode.Gcode, plotterConf *plotter.PlotterConfig) *gcode.Gcode {
+func PathCommandsToGcode(commands []svg.PathCommand, transformChain svgtransform.TransformChain, g *gcode.Gcode, plotterConf *conf.PlotterConfig) *gcode.Gcode {
 	var b strings.Builder
 
 	tMat := transformChain.ToMatrix()

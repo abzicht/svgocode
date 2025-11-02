@@ -7,8 +7,8 @@ import (
 	"strings"
 
 	"github.com/abzicht/svgocode/llog"
+	"github.com/abzicht/svgocode/svgocode/conf"
 	"github.com/abzicht/svgocode/svgocode/math64"
-	"github.com/abzicht/svgocode/svgocode/plotter"
 )
 
 // Match all lines that start with a comment
@@ -131,7 +131,7 @@ func (g *Gcode) AppendCode(code string) {
 // Join two gcodes, merging their boundaries, start/end coordinates, and code.
 // Adds Retract command in-between both codes, if they end/start at different
 // positions.
-func (g *Gcode) Append(g2 *Gcode, plotterConf *plotter.PlotterConfig) {
+func (g *Gcode) Append(g2 *Gcode, plotterConf *conf.PlotterConfig) {
 	ins := NewIns(plotterConf)
 	g2StartRetracted := math64.VectorF3{X: g2.StartCoord.X, Y: g2.StartCoord.Y, Z: plotterConf.RetractHeight}
 	gEndRetracted := math64.VectorF3{X: g.EndCoord.X, Y: g2.EndCoord.Y, Z: plotterConf.RetractHeight}
@@ -145,7 +145,7 @@ func (g *Gcode) Append(g2 *Gcode, plotterConf *plotter.PlotterConfig) {
 	g.Code.Append(g2.Code)
 }
 
-func Join(gcodes []*Gcode, plotterConf *plotter.PlotterConfig) *Gcode {
+func Join(gcodes []*Gcode, plotterConf *conf.PlotterConfig) *Gcode {
 	if len(gcodes) == 0 {
 		llog.Panic("Cannot join gcode segments, provided list is empty")
 	}

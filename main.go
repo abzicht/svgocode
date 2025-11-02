@@ -9,10 +9,10 @@ import (
 
 	"github.com/abzicht/svgocode/llog"
 	"github.com/abzicht/svgocode/svgocode"
-	"github.com/abzicht/svgocode/svgocode/convs"
+	"github.com/abzicht/svgocode/svgocode/conf"
+	"github.com/abzicht/svgocode/svgocode/conv"
 	"github.com/abzicht/svgocode/svgocode/gcode"
 	"github.com/abzicht/svgocode/svgocode/ordering"
-	"github.com/abzicht/svgocode/svgocode/plotter"
 	"github.com/abzicht/svgocode/svgocode/svg"
 	"github.com/jessevdk/go-flags"
 )
@@ -39,17 +39,17 @@ func main() {
 	}
 	if f.PlotterConfigTemplate {
 		// User wants to see a template for plotter profiles
-		fmt.Println(plotter.PlotterConfigLongerLK5ProDefault().YAML(4))
+		fmt.Println(conf.PlotterConfigLongerLK5ProDefault().YAML(4))
 		return
 	}
-	var plotterConfig *plotter.PlotterConfig
+	var plotterConfig *conf.PlotterConfig
 	if len(f.PlotterConfigFile) > 0 {
 		// Read profile from file
 		file_, err := os.Open(f.PlotterConfigFile)
 		if err != nil {
 			log.Fatal(err.Error())
 		}
-		plotterConfig, err = plotter.InitPlotterConfig(file_)
+		plotterConfig, err = conf.InitPlotterConfig(file_)
 		if err != nil {
 			log.Fatal(err.Error())
 		}
@@ -60,7 +60,7 @@ func main() {
 	} else {
 		// or assume default profile.
 		llog.Warn("No plotter configuration specified. Using default configuration for LONGER LK5 PRO 3D printer.\n")
-		plotterConfig = plotter.PlotterConfigLongerLK5ProDefault()
+		plotterConfig = conf.PlotterConfigLongerLK5ProDefault()
 	}
 	var reader io.Reader = os.Stdin
 	if len(f.SvgFile) > 0 {
@@ -88,7 +88,7 @@ func main() {
 		llog.Panic(err.Error())
 	}
 	// Convert to *gcode.Gcode
-	gcode_ := svgocode.Svg2Gcode(&parsed_svg, plotterConfig, convs.NewDirect(plotterConfig), ordering.ParseOrdering(ordering.OrderingAlg(f.Ordering)))
+	gcode_ := svgocode.Svg2Gcode(&parsed_svg, plotterConfig, conv.NewDirect(plotterConfig), ordering.ParseOrdering(ordering.OrderingAlg(f.Ordering)))
 
 	var writer io.Writer = os.Stdout
 	if len(f.GcodeFile) > 0 {

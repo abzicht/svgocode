@@ -1,4 +1,4 @@
-package convs
+package conv
 
 import (
 	"github.com/abzicht/gogenericfunc/fun"
@@ -19,22 +19,22 @@ type ConverterI interface {
 }
 
 // Convert using the converter, based on the element's type
-func SVGConvert(s svg.SVGShapeElement, transformChain svgtransform.TransformChain, conv ConverterI) fun.Option[*gcode.Gcode] {
+func SVGConvert(s svg.SVGShapeElement, transformChain svgtransform.TransformChain, converter ConverterI) fun.Option[*gcode.Gcode] {
 	switch s.(type) {
 	case *svg.Path:
-		return conv.Path(s.(*svg.Path), transformChain)
+		return converter.Path(s.(*svg.Path), transformChain)
 	case *svg.Line:
-		return conv.Line(s.(*svg.Line), transformChain)
+		return converter.Line(s.(*svg.Line), transformChain)
 	case *svg.Rect:
-		return conv.Rect(s.(*svg.Rect), transformChain)
+		return converter.Rect(s.(*svg.Rect), transformChain)
 	case *svg.Circle:
-		return conv.Circle(s.(*svg.Circle), transformChain)
+		return converter.Circle(s.(*svg.Circle), transformChain)
 	case *svg.Ellipse:
-		return conv.Ellipse(s.(*svg.Ellipse), transformChain)
+		return converter.Ellipse(s.(*svg.Ellipse), transformChain)
 	case *svg.Polygon:
-		return conv.Polygon(s.(*svg.Polygon), transformChain)
+		return converter.Polygon(s.(*svg.Polygon), transformChain)
 	case *svg.Polyline:
-		return conv.Polyline(s.(*svg.Polyline), transformChain)
+		return converter.Polyline(s.(*svg.Polyline), transformChain)
 	default:
 		llog.Panicf("Unknown SVG object received, cannot convert to gcode. Type: %T\n", s)
 		return nil

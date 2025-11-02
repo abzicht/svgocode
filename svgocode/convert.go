@@ -3,17 +3,17 @@ package svgocode
 import (
 	"github.com/abzicht/gogenericfunc/fun"
 	"github.com/abzicht/svgocode/llog"
-	"github.com/abzicht/svgocode/svgocode/convs"
+	"github.com/abzicht/svgocode/svgocode/conf"
+	"github.com/abzicht/svgocode/svgocode/conv"
 	"github.com/abzicht/svgocode/svgocode/gcode"
 	"github.com/abzicht/svgocode/svgocode/math64"
 	"github.com/abzicht/svgocode/svgocode/ordering"
-	"github.com/abzicht/svgocode/svgocode/plotter"
 	"github.com/abzicht/svgocode/svgocode/svg"
 )
 
 // Convert an SVG object to gcode instructions
-func Svg2Gcode(s *svg.SVG, plotterConf *plotter.PlotterConfig, conv convs.ConverterI, order ordering.OrderingI) *gcode.Gcode {
-	runtConf := plotter.NewRuntimeConfig()
+func Svg2Gcode(s *svg.SVG, plotterConf *conf.PlotterConfig, converter conv.ConverterI, order ordering.OrderingI) *gcode.Gcode {
+	runtConf := conf.NewRuntimeConfig()
 	runtConf.SetUnitLength(s.UserUnit())
 	plotterTransform := plotterConf.Transform()
 
@@ -27,7 +27,7 @@ func Svg2Gcode(s *svg.SVG, plotterConf *plotter.PlotterConfig, conv convs.Conver
 		// provided converter.
 		if svg.IsLeaf(svgElement) {
 			transformChain := append(plotterTransform, svg.TransformChainForPath(svgElementPath)...)
-			gcodeOpt := convs.SVGConvert(svgElement, transformChain, conv)
+			gcodeOpt := conv.SVGConvert(svgElement, transformChain, converter)
 			switch gcodeOpt.(type) {
 			case fun.Some[*gcode.Gcode]:
 				gcodes = append(gcodes, gcodeOpt.GetValue())
@@ -77,7 +77,7 @@ func Svg2Gcode(s *svg.SVG, plotterConf *plotter.PlotterConfig, conv convs.Conver
 }
 
 // Create gcode for the plotter's gcode prefix
-func NewGcodePrefix(plotterConf *plotter.PlotterConfig, runtConf *plotter.RuntimeConfig, body *gcode.Gcode) *gcode.Gcode {
+func NewGcodePrefix(plotterConf *conf.PlotterConfig, runtConf *conf.RuntimeConfig, body *gcode.Gcode) *gcode.Gcode {
 	ins := gcode.NewIns(plotterConf)
 	g := body.CopyMeta()
 	g.AppendCode(plotterConf.GcodePrefix)
@@ -98,7 +98,7 @@ func NewGcodePrefix(plotterConf *plotter.PlotterConfig, runtConf *plotter.Runtim
 }
 
 // Create gcode for the plotter's gcode suffix, based on the given gcode body
-func NewGcodeSuffix(plotterConf *plotter.PlotterConfig, body *gcode.Gcode) *gcode.Gcode {
+func NewGcodeSuffix(plotterConf *conf.PlotterConfig, body *gcode.Gcode) *gcode.Gcode {
 	ins := gcode.NewIns(plotterConf)
 	g := gcode.NewGcode()
 	g.StartCoord = body.EndCoord

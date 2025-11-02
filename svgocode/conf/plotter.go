@@ -1,4 +1,4 @@
-package plotter
+package conf
 
 import (
 	"io"

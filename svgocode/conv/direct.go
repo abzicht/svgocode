@@ -1,24 +1,24 @@
-package convs
+package conv
 
 import (
 	"fmt"
 
 	"github.com/abzicht/gogenericfunc/fun"
 	"github.com/abzicht/svgocode/llog"
+	"github.com/abzicht/svgocode/svgocode/conf"
 	"github.com/abzicht/svgocode/svgocode/gcode"
 	"github.com/abzicht/svgocode/svgocode/math64"
-	"github.com/abzicht/svgocode/svgocode/plotter"
 	"github.com/abzicht/svgocode/svgocode/svg"
 	"github.com/abzicht/svgocode/svgocode/svg/svgtransform"
 )
 
 // Direct conversion to gcode paths, no filling of bodies
 type Direct struct {
-	plotterConf *plotter.PlotterConfig
+	plotterConf *conf.PlotterConfig
 	ins         *gcode.Ins
 }
 
-func NewDirect(plotterConf *plotter.PlotterConfig) *Direct {
+func NewDirect(plotterConf *conf.PlotterConfig) *Direct {
 	d := new(Direct)
 	d.plotterConf = plotterConf
 	d.ins = gcode.NewIns(plotterConf)

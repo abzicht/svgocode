@@ -1,4 +1,4 @@
-package plotter
+package conf
 
 import (
 	"github.com/abzicht/svgocode/llog"
