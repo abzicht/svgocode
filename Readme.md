@@ -30,7 +30,7 @@ This will compile `build/svgocode` and install the binary in `GOBIN`:
 make install
 ```
 
-## Use & I/O
+## Use
 
 SVGOCODE expects SVG-formatted input from `STDIN` (or from files provided with
 `-s`). It writes GCODE to `STDOUT` (or to files provided with `-g`), all
@@ -44,6 +44,19 @@ cat drawing.svg | svgocode > drawing.gcode
 # b) via flags:
 svgocode -s drawing.svg -g drawing.gcode
 ```
+
+By default, the travel distance between gcode segments is minimized via 2-Opt.
+2-Opt is an optimal algorithm for the travelling salesman problem (TSP). The
+implementation of this algorithm is not optimized and may be computationally
+expensive when ordering too many elements. Using `svgocode
+--ordering-algorithm=`, the algorithm can be customized.
+
+The following algorithms are available:
+
+* `2opt`: Optimal, but not suitable for ordering thousands of elements.
+* `greedy`: Fast at finding a good, but not optimal solution.
+* `none`: No ordering is performed. The gcode segments are ordered in the order of their associated SVG elements.
+* `reverse`: Reverses the segment order - the last SVG element will be drawn first.
 
 ## Development
 
