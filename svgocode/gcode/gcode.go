@@ -35,6 +35,10 @@ func (c *Code) Copy() *Code {
 	return c2
 }
 
+func (c *Code) NumLines() int {
+	return len(c.lines)
+}
+
 func (c *Code) NumInstructions() int {
 	counter := 0
 	for _, line := range c.lines {

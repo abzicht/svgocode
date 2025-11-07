@@ -160,15 +160,17 @@ Finally, it is crucial to assess the produced GCODE before use. E.g., open the
 GCODE in CURA and activate the `Travels` checkbox in `Color Scheme > Line
 Type`.
 
-<b>Disclaimer: Running GCODE on expensive machines can cause expensive noises.
-The authors of SVGOCODE are not responsible for any damage caused from
+<b>Disclaimer: Running GCODE on expensive machines can create expensive noises.
+The authors of SVGOCODE are not responsible for any damage caused by
 GCODE-based mishaps! The produced GCODE is in ASCII and can be easily assessed
 before its use. Do so!</b>
 
 ## Contributing
 
-Some SVG feature is not yet supported? Please create an _issue_
-or DIY and submit a pull request.
+Some SVG feature is not yet supported? Please 
+
+- create an _issue_ or
+- DIY and submit a _pull request_.
 
 ## Next Steps
 

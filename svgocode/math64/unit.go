@@ -52,3 +52,31 @@ func NumberUnit(s string) (Float, UnitLength) {
 	unit := UnitLengthFromString(matches[2])
 	return Float(value), unit
 }
+
+// Convert a length l from unit 'from' to unit 'to'
+func LengthConvert(l Float, from, to UnitLength) Float {
+	var tmp Float
+	switch from {
+	case UnitMM:
+		tmp = l
+	case UnitCM:
+		tmp = l * 10
+	case UnitIN:
+		tmp = l * 25.4
+	default:
+		llog.Panicf("Conversion of type %s is not supported", from)
+	}
+
+	switch to {
+	case UnitMM:
+		return tmp
+	case UnitCM:
+		return tmp / 10.0
+	case UnitIN:
+		return tmp / 25.4
+	default:
+		llog.Panicf("Conversion of type %s is not supported", to)
+	}
+	llog.Panicf("NOT REACHED")
+	return -1
+}

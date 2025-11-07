@@ -47,7 +47,7 @@ func (ins *Ins) SetExtrusion(g *Gcode, extSpeed math64.Speed, forDrawing bool) *
 	if forDrawing {
 		gcmd = "G1"
 	}
-	g.AppendCode(fmt.Sprintf("%s E%f", gcmd, extSpeed))
+	g.AppendCode(fmt.Sprintf("%s E%f ; Setting Extrusion", gcmd, extSpeed))
 	return g
 }
 
@@ -57,20 +57,41 @@ func (ins *Ins) SetSpeed(g *Gcode, speed math64.Speed, forDrawing bool) *Gcode {
 	if forDrawing {
 		gcmd = "G1"
 	}
-	g.AppendCode(fmt.Sprintf("%s F%f", gcmd, speed))
+	g.AppendCode(fmt.Sprintf("%s F%f ; Setting Speed", gcmd, speed))
 	return g
 }
 
 // Retract to preconfigured height using Move
 func (ins *Ins) Retract(g *Gcode) *Gcode {
-	g.AppendCode(fmt.Sprintf("; Retracting"))
-	target := math64.VectorF3{X: g.EndCoord.X, Y: g.EndCoord.Y, Z: ins.plotterConf.RetractHeight}
-	return ins.move(g, target, ins.plotterConf.RetractSpeed, false)
+	//g.AppendCode(fmt.Sprintf("; Retracting"))
+	//target := math64.VectorF3{X: g.EndCoord.X, Y: g.EndCoord.Y, Z: ins.plotterConf.RetractHeight}
+	//return ins.move(g, target, ins.plotterConf.RetractSpeed, false)
+	g.EndCoord.Z = ins.plotterConf.RetractHeight
+	g.BoundsMin = g.BoundsMin.Min(g.EndCoord)
+	g.BoundsMax = g.BoundsMax.Max(g.EndCoord)
+	g.AppendCode(fmt.Sprintf("G0 Z%f F%f ; Retracting", ins.plotterConf.RetractHeight, ins.plotterConf.RetractSpeed))
+	return g
+}
+
+// Lower pen to draw height
+func (ins *Ins) DrawPos(g *Gcode) *Gcode {
+	g.EndCoord.Z = ins.plotterConf.DrawHeight
+	g.BoundsMin = g.BoundsMin.Min(g.EndCoord)
+	g.BoundsMax = g.BoundsMax.Max(g.EndCoord)
+	g.AppendCode(fmt.Sprintf("G1 Z%f F%f ; Lowering", ins.plotterConf.DrawHeight, ins.plotterConf.DrawSpeed))
+	return g
+}
+
+// MoveRetracted at retract height to given position.
+func (ins *Ins) MoveRetracted(g *Gcode, target math64.VectorF2) *Gcode {
+	g.EndCoord.X = target.X
+	g.EndCoord.Y = target.Y
+	g.EndCoord.Z = ins.plotterConf.RetractHeight
+	return ins.move(g, g.EndCoord, ins.plotterConf.RetractSpeed, false)
 }
 
 // Draw at the given draw height and speed.
 func (ins *Ins) Draw(g *Gcode, target math64.VectorF2) *Gcode {
-	g.AppendCode(fmt.Sprintf("; Drawing to X%f Y%f", target.X, target.Y))
 	return ins.move(g, math64.VectorF3{X: target.X, Y: target.Y, Z: ins.plotterConf.DrawHeight}, ins.plotterConf.DrawSpeed, true)
 }
 
@@ -83,13 +104,18 @@ func (ins *Ins) Move(g *Gcode, target math64.VectorF3, speed math64.Speed) *Gcod
 // Updates boundary and end coordinate information
 func (ins *Ins) move(g *Gcode, target math64.VectorF3, speed math64.Speed, isDrawing bool) *Gcode {
 	g.EndCoord = target
-	g.BoundsMin = g.BoundsMin.Min(target)
-	g.BoundsMax = g.BoundsMax.Max(target)
-	var gcmd string = "G0"
-	if isDrawing {
-		gcmd = "G1"
+	if g.Code.NumLines() == 0 {
+		g.BoundsMin = target
+		g.BoundsMax = target
+	} else {
+		g.BoundsMin = g.BoundsMin.Min(target)
+		g.BoundsMax = g.BoundsMax.Max(target)
 	}
-	g.AppendCode(fmt.Sprintf("%s X%f Y%f Z%f F%f", gcmd, target.X, target.Y, target.Z, speed))
+	if isDrawing {
+		g.AppendCode(fmt.Sprintf("G1 X%f Y%f Z%f F%f ; Drawing", target.X, target.Y, target.Z, speed))
+	} else {
+		g.AppendCode(fmt.Sprintf("G0 X%f Y%f Z%f F%f ; Moving", target.X, target.Y, target.Z, speed))
+	}
 	return g
 }
 
