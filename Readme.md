@@ -18,7 +18,7 @@ devices and quick file conversion, once a suitable profile is found.
   + `use` resolves to its referenced element.
   + `path` commands are fully covered.
 * Supports the `transform` attribute and all of its functions (`matrix`, `translate`, `translateX`, `translateY`, `scale`, `scaleX`, `scaleY`, `skew`, `skewX`, `skewY`, `rotate`).
-* Supports SVG user units `mm`, `cm`, `in` and GCODE units `mm` and `in`.
+* Supports SVG user units `mm`, `cm`, and `in`. Supports GCODE units `mm` and `in`.
   Values are being converted, if SVG and GCODE units don't match.
 * Translates to GCODE based on customizable plotter / printer profiles.
 * Offers algorithms for minimizing travel distance in-between draw operations.
@@ -181,8 +181,3 @@ Some SVG feature is not yet supported? Please
 
 - create an _issue_ or
 - DIY and submit a _pull request_.
-
-## Next Steps
-
-* Add option to switch between penplotting and extrusion.
-* Implement unit tests.
