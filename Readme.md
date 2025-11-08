@@ -1,3 +1,5 @@
+<img src="svgocode.png" alt="SVGOCODE Logo" width="500"/>
+
 # SVGOCODE - Yet Another SVG to GCODE Converter
 
 SVGOCODE - _/æz wi ˈɡoʊkoʊd/_ - converts SVG to GCODE, allowing digital imagery
