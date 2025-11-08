@@ -29,9 +29,13 @@ devices and quick file conversion, once a suitable profile is found.
 
 ## Installation
 
-This will compile `build/svgocode` and install the binary in `GOBIN`:
+This will install the binary in `GOBIN`:
+
 ```bash
+# a)
 make install
+# b)
+go install github.com/abzicht/svgocode
 ```
 
 ## Use
