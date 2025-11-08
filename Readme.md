@@ -85,7 +85,6 @@ Custom profiles are supplied via `svgocode --plotter-config=file.yml`.
 Here is a description of the default configuration parameters:
 
 ```yaml
-# Note: all length units are in mm, speed is in mm/s
 gprefix: "gcode that is placed at the start of the output"
 gsuffix: "gcode that is placed at the end   of the output"
 length-unit: "mm" # Can be "mm" or "in". The unit is applied on gcode and all distance/speed variables in the plotter profile.
