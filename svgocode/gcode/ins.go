@@ -20,19 +20,6 @@ func NewIns(runtConf *conf.RuntimeConfig) *Ins {
 	return ins
 }
 
-func (ins *Ins) convUnitF2(v math64.VectorF2) math64.VectorF2 {
-	x := math64.LengthConvert(v.X, ins.runtime.SvgUnit, ins.runtime.PlotterUnit)
-	y := math64.LengthConvert(v.Y, ins.runtime.SvgUnit, ins.runtime.PlotterUnit)
-	return math64.VectorF2{X: x, Y: y}
-}
-
-func (ins *Ins) convUnitF3(v math64.VectorF3) math64.VectorF3 {
-	x := math64.LengthConvert(v.X, ins.runtime.SvgUnit, ins.runtime.PlotterUnit)
-	y := math64.LengthConvert(v.Y, ins.runtime.SvgUnit, ins.runtime.PlotterUnit)
-	z := math64.LengthConvert(v.Z, ins.runtime.SvgUnit, ins.runtime.PlotterUnit)
-	return math64.VectorF3{X: x, Y: y, Z: z}
-}
-
 // Add a comment line
 func (ins *Ins) AddComment(g *Gcode, comment string) *Gcode {
 	g.AppendCode(fmt.Sprintf("; %s", comment))
@@ -82,7 +69,7 @@ func (ins *Ins) Retract(g *Gcode) *Gcode {
 	g.EndCoord.Z = ins.runtime.Plotter.RetractHeight
 	g.BoundsMin = g.BoundsMin.Min(g.EndCoord)
 	g.BoundsMax = g.BoundsMax.Max(g.EndCoord)
-	g.AppendCode(fmt.Sprintf("G0 Z%f F%f ; Retracting", math64.LengthConvert(ins.runtime.Plotter.RetractHeight, math64.UnitMM, ins.runtime.PlotterUnit), math64.SpeedConvert(ins.runtime.Plotter.RetractSpeed, math64.UnitMM, ins.runtime.PlotterUnit)))
+	g.AppendCode(fmt.Sprintf("G0 Z%f F%f ; Retracting", g.EndCoord.Z, ins.runtime.Plotter.RetractSpeed))
 	return g
 }
 
@@ -91,7 +78,7 @@ func (ins *Ins) DrawPos(g *Gcode) *Gcode {
 	g.EndCoord.Z = ins.runtime.Plotter.DrawHeight
 	g.BoundsMin = g.BoundsMin.Min(g.EndCoord)
 	g.BoundsMax = g.BoundsMax.Max(g.EndCoord)
-	g.AppendCode(fmt.Sprintf("G1 Z%f F%f ; Lowering", math64.LengthConvert(ins.runtime.Plotter.DrawHeight, math64.UnitMM, ins.runtime.PlotterUnit), math64.SpeedConvert(ins.runtime.Plotter.DrawSpeed, math64.UnitMM, ins.runtime.PlotterUnit)))
+	g.AppendCode(fmt.Sprintf("G1 Z%f F%f ; Lowering", g.EndCoord.Z, ins.runtime.Plotter.DrawSpeed))
 	return g
 }
 
@@ -125,12 +112,10 @@ func (ins *Ins) move(g *Gcode, target math64.VectorF3, speed math64.Speed, isDra
 		g.BoundsMin = g.BoundsMin.Min(target)
 		g.BoundsMax = g.BoundsMax.Max(target)
 	}
-	targetPlUnit := ins.convUnitF3(target)
-	speedPlUnit := math64.SpeedConvert(speed, math64.UnitMM, ins.runtime.PlotterUnit)
 	if isDrawing {
-		g.AppendCode(fmt.Sprintf("G1 X%f Y%f Z%f F%f ; Drawing", targetPlUnit.X, targetPlUnit.Y, targetPlUnit.Z, speedPlUnit))
+		g.AppendCode(fmt.Sprintf("G1 X%f Y%f Z%f F%f ; Drawing", target.X, target.Y, target.Z, speed))
 	} else {
-		g.AppendCode(fmt.Sprintf("G0 X%f Y%f Z%f F%f ; Moving", targetPlUnit.X, targetPlUnit.Y, targetPlUnit.Z, speedPlUnit))
+		g.AppendCode(fmt.Sprintf("G0 X%f Y%f Z%f F%f ; Moving", target.X, target.Y, target.Z, speed))
 	}
 	return g
 }
@@ -155,7 +140,6 @@ func (ins *Ins) DrawCircle(g *Gcode, centerOffset math64.VectorF2, radius math64
 	if !clockwise {
 		gcmd = "G3"
 	}
-	centerOffsetPlUnit := ins.convUnitF2(centerOffset)
-	g.AppendCode(fmt.Sprintf("%s I%f J%f F%f", gcmd, centerOffsetPlUnit.X, centerOffsetPlUnit.Y, math64.SpeedConvert(ins.runtime.Plotter.DrawSpeed, math64.UnitMM, ins.runtime.PlotterUnit)))
+	g.AppendCode(fmt.Sprintf("%s I%f J%f F%f", gcmd, centerOffset.X, centerOffset.Y, ins.runtime.Plotter.DrawSpeed))
 	return g
 }

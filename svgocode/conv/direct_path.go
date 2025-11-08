@@ -12,22 +12,28 @@ import (
 )
 
 type directPathContext struct {
-	g        *gcode.Gcode
-	tMat     *svgtransform.TransformMatrix
-	runtConf *conf.RuntimeConfig
-	ins      *gcode.Ins
+	g       *gcode.Gcode
+	tMat    *svgtransform.TransformMatrix
+	runtime *conf.RuntimeConfig
+	ins     *gcode.Ins
 }
 
-// This code was partly produced by AI.
+// Project point into gcode space by applying svg transformations and unit
+// conversion
+func (d *directPathContext) project(p math64.VectorF2) math64.VectorF2 {
+	p2 := d.tMat.ApplyP(p)
+	x := math64.LengthConvert(p2.X, d.runtime.SvgUnit, d.runtime.PlotterUnit)
+	y := math64.LengthConvert(p2.Y, d.runtime.SvgUnit, d.runtime.PlotterUnit)
+	return math64.VectorF2{X: x, Y: y}
+}
 
+// Convert a slice of svg path commands into gcode, applying a transform chain
+// and svg-to-plotter-unit conversion to all instructions.
 func PathCommandsToGcode(commands []svg.PathCommand, transformChain svgtransform.TransformChain, g *gcode.Gcode, runtConf *conf.RuntimeConfig, ins *gcode.Ins) *gcode.Gcode {
-	//var b strings.Builder
 
 	tMat := transformChain.ToMatrix()
-	dCtx := directPathContext{g: g, tMat: tMat, runtConf: runtConf, ins: ins}
+	dCtx := directPathContext{g: g, tMat: tMat, runtime: runtConf, ins: ins}
 	var (
-		//zUp   = plotterConf.RetractHeight // pen/tool up height
-		//zDown = plotterConf.DrawHeight    // pen/tool down height
 		steps = math64.Float(20.0) // number of line segments to approximate curves
 	)
 
@@ -36,7 +42,6 @@ func PathCommandsToGcode(commands []svg.PathCommand, transformChain svgtransform
 	penDown := false
 
 	// Header
-	//fmt.Fprintf(&b, "G0 Z%.3f\n", zUp)
 	//dCtx.ins.Retract(g)
 
 	if len(commands) == 0 {
@@ -46,7 +51,6 @@ func PathCommandsToGcode(commands []svg.PathCommand, transformChain svgtransform
 		switch cmd.Type {
 		case svg.CmdMoveTo:
 			if penDown {
-				//fmt.Fprintf(&b, "G0 Z%.3f\n", zUp)
 				dCtx.ins.Retract(g)
 				penDown = false
 			}
@@ -56,15 +60,13 @@ func PathCommandsToGcode(commands []svg.PathCommand, transformChain svgtransform
 					x += current.X
 					y += current.Y
 				}
-				//fmt.Fprint(&b, drawPointStr(&dCtx, math64.VectorF2{X: x, Y: y}, false))
-				dCtx.ins.MoveRetracted(g, dCtx.tMat.ApplyP(math64.VectorF2{X: x, Y: y}))
+				dCtx.ins.MoveRetracted(g, dCtx.project(math64.VectorF2{X: x, Y: y}))
 				current = math64.VectorF2{X: x, Y: y}
 				start = current
 			}
 
 		case svg.CmdLineTo:
 			if !penDown {
-				//fmt.Fprintf(&b, "G1 Z%.3f\n", zDown)
 				dCtx.ins.DrawPos(g)
 				penDown = true
 			}
@@ -74,14 +76,12 @@ func PathCommandsToGcode(commands []svg.PathCommand, transformChain svgtransform
 					x += current.X
 					y += current.Y
 				}
-				//fmt.Fprint(&b, drawPointStr(&dCtx, math64.VectorF2{X: x, Y: y}, true))
-				dCtx.ins.Draw(g, dCtx.tMat.ApplyP(math64.VectorF2{X: x, Y: y}))
+				dCtx.ins.Draw(g, dCtx.project(math64.VectorF2{X: x, Y: y}))
 				current = math64.VectorF2{X: x, Y: y}
 			}
 
 		case svg.CmdHLineTo:
 			if !penDown {
-				//fmt.Fprintf(&b, "G1 Z%.3f\n", zDown)
 				dCtx.ins.DrawPos(g)
 				penDown = true
 			}
@@ -90,14 +90,12 @@ func PathCommandsToGcode(commands []svg.PathCommand, transformChain svgtransform
 				if cmd.Relative {
 					x += current.X
 				}
-				//fmt.Fprint(&b, drawPointStr(&dCtx, math64.VectorF2{X: x, Y: current.Y}, true))
-				dCtx.ins.Draw(g, dCtx.tMat.ApplyP(math64.VectorF2{X: x, Y: current.Y}))
+				dCtx.ins.Draw(g, dCtx.project(math64.VectorF2{X: x, Y: current.Y}))
 				current.X = x
 			}
 
 		case svg.CmdVLineTo:
 			if !penDown {
-				//fmt.Fprintf(&b, "G1 Z%.3f\n", zDown)
 				dCtx.ins.DrawPos(g)
 				penDown = true
 			}
@@ -106,14 +104,12 @@ func PathCommandsToGcode(commands []svg.PathCommand, transformChain svgtransform
 				if cmd.Relative {
 					y += current.Y
 				}
-				//fmt.Fprint(&b, drawPointStr(&dCtx, math64.VectorF2{X: current.X, Y: y}, true))
-				dCtx.ins.Draw(g, dCtx.tMat.ApplyP(math64.VectorF2{X: current.X, Y: y}))
+				dCtx.ins.Draw(g, dCtx.project(math64.VectorF2{X: current.X, Y: y}))
 				current.Y = y
 			}
 
 		case svg.CmdCurveTo, svg.CmdSmoothCurveTo: // Cubic Bézier curves
 			if !penDown {
-				//fmt.Fprintf(&b, "G1 Z%.3f\n", zDown)
 				dCtx.ins.DrawPos(g)
 				penDown = true
 			}
@@ -129,15 +125,13 @@ func PathCommandsToGcode(commands []svg.PathCommand, transformChain svgtransform
 				for t := math64.Float(0.0); t <= 1.0; t += 1.0 / steps {
 					x := cubicBezier(math64.Float(t), current.X, p1.X, p2.X, p3.X)
 					y := cubicBezier(math64.Float(t), current.Y, p1.Y, p2.Y, p3.Y)
-					//fmt.Fprint(&b, drawPointStr(&dCtx, math64.VectorF2{X: x, Y: y}, false))
-					dCtx.ins.Draw(g, dCtx.tMat.ApplyP(math64.VectorF2{X: x, Y: y}))
+					dCtx.ins.Draw(g, dCtx.project(math64.VectorF2{X: x, Y: y}))
 				}
 				current = p3
 			}
 
 		case svg.CmdQuadraticBezierTo, svg.CmdSmoothQuadraticBezierTo: // Quadratic Bézier
 			if !penDown {
-				//fmt.Fprintf(&b, "G1 Z%.3f\n", zDown)
 				dCtx.ins.DrawPos(g)
 				penDown = true
 			}
@@ -153,15 +147,13 @@ func PathCommandsToGcode(commands []svg.PathCommand, transformChain svgtransform
 				for t := math64.Float(0.0); t <= 1.0; t += 1.0 / steps {
 					x := quadraticBezier(math64.Float(t), current.X, p1.X, p2.X)
 					y := quadraticBezier(math64.Float(t), current.Y, p1.Y, p2.Y)
-					//fmt.Fprint(&b, drawPointStr(&dCtx, math64.VectorF2{X: x, Y: y}, true))
-					dCtx.ins.Draw(g, dCtx.tMat.ApplyP(math64.VectorF2{X: x, Y: y}))
+					dCtx.ins.Draw(g, dCtx.project(math64.VectorF2{X: x, Y: y}))
 				}
 				current = p2
 			}
 
 		case svg.CmdEllipticalArc: // Elliptical arc (approximated)
 			if !penDown {
-				//fmt.Fprintf(&b, "G1 Z%.3f\n", zDown)
 				dCtx.ins.DrawPos(g)
 				penDown = true
 			}
@@ -172,51 +164,30 @@ func PathCommandsToGcode(commands []svg.PathCommand, transformChain svgtransform
 					to.Y += current.Y
 				}
 				for _, arcPoint := range approximateArc(current, to, a, steps) {
-					//fmt.Fprint(&b, drawPointStr(&dCtx, arcPoint, true))
-					dCtx.ins.Draw(g, dCtx.tMat.ApplyP(arcPoint))
+					dCtx.ins.Draw(g, dCtx.project(arcPoint))
 				}
 				current = to
 			}
 
 		case svg.CmdClosePath:
 			if penDown {
-				//fmt.Fprint(&b, drawPointStr(&dCtx, math64.VectorF2{X: start.X, Y: start.Y}, true))
-				dCtx.ins.Draw(g, dCtx.tMat.ApplyP(math64.VectorF2{X: start.X, Y: start.Y}))
-				//fmt.Fprintf(&b, "G0 Z%.3f\n", zUp)
-				//dCtx.ins.Retract(g)
+				dCtx.ins.Draw(g, dCtx.project(math64.VectorF2{X: start.X, Y: start.Y}))
 				penDown = false
 			}
 			current = start
 
 		default:
-			//fmt.Fprintf(&b, "; Unsupported command: %s\n", cmd.Type)
 			dCtx.ins.AddComment(g, fmt.Sprintf("; Unsupported command: %s\n", cmd.Type))
 		}
 	}
 	{
-		startTransformed := tMat.ApplyP(start)
-		currentTransformed := tMat.ApplyP(current)
+		startTransformed := dCtx.project(start)
+		currentTransformed := dCtx.project(current)
 		g.StartCoord = math64.VectorF3{X: startTransformed.X, Y: startTransformed.Y, Z: runtConf.Plotter.DrawHeight}
 		g.EndCoord = math64.VectorF3{X: currentTransformed.X, Y: currentTransformed.Y, Z: runtConf.Plotter.DrawHeight}
 	}
-	//g.AppendCode(b.String())
 	return g
 }
-
-// Create a G0/G1 move instruction to a point that is transformed using the
-// given matrix. Also updates the provided gcode's Min/Max bounds
-// func drawPointStr(dCtx *directPathContext, point math64.VectorF2, isDrawing bool) string {
-// 	point = dCtx.tMat.ApplyP(point)
-// 	point3 := math64.VectorF3{X: point.X, Y: point.Y, Z: dCtx.plotterConf.RetractHeight}
-// 	gcmd := "G0"
-// 	if isDrawing {
-// 		gcmd = "G1"
-// 		point3.Z = dCtx.plotterConf.DrawHeight
-// 	}
-// 	dCtx.g.BoundsMin = dCtx.g.BoundsMin.Min(point3)
-// 	dCtx.g.BoundsMax = dCtx.g.BoundsMax.Max(point3)
-// 	return fmt.Sprintf("%s X%.3f Y%.3f\n", gcmd, point.X, point.Y)
-// }
 
 // Cubic Bézier interpolation
 func cubicBezier(t, p0, p1, p2, p3 math64.Float) math64.Float {

@@ -29,6 +29,13 @@ func (d *Direct) SetConfig(config *ConvConf) {
 	d.ins = gcode.NewIns(d.conf.runtime)
 }
 
+// Convert value from svg to plotter unit
+func (d *Direct) convUnitF2(v math64.VectorF2) math64.VectorF2 {
+	x := math64.LengthConvert(v.X, d.conf.runtime.SvgUnit, d.conf.runtime.PlotterUnit)
+	y := math64.LengthConvert(v.Y, d.conf.runtime.SvgUnit, d.conf.runtime.PlotterUnit)
+	return math64.VectorF2{X: x, Y: y}
+}
+
 // Add a line that describes the given type and id of the converted svg object
 func (d *Direct) addIdComment(g *gcode.Gcode, type_ string, id svg.SvgId) {
 	if len(id) == 0 {
@@ -61,13 +68,9 @@ func (d *Direct) Path(p *svg.Path, transformChain svgtransform.TransformChain) f
 func (d *Direct) Line(l *svg.Line, transformChain svgtransform.TransformChain) fun.Option[*gcode.Gcode] {
 	g := gcode.NewGcode()
 	tMatrix := transformChain.ToMatrix()
-	p1 := tMatrix.ApplyP(math64.VectorF2{X: l.X1, Y: l.Y1})
-	p2 := tMatrix.ApplyP(math64.VectorF2{X: l.X2, Y: l.Y2})
+	p1 := d.convUnitF2(tMatrix.ApplyP(math64.VectorF2{X: l.X1, Y: l.Y1}))
+	p2 := d.convUnitF2(tMatrix.ApplyP(math64.VectorF2{X: l.X2, Y: l.Y2}))
 	d.addIdComment(g, "Line", l.Id)
-	g.BoundsMin.X = p1.X
-	g.BoundsMin.Y = p1.Y
-	g.BoundsMax.X = p1.X
-	g.BoundsMax.Y = p1.Y
 	// Actual bounds values will be updated by move operation
 	g.StartCoord = math64.VectorF3{X: p1.X, Y: p1.Y, Z: d.conf.runtime.Plotter.DrawHeight}
 	d.ins.Move(g, g.StartCoord, d.conf.runtime.Plotter.DrawSpeed)
@@ -90,23 +93,23 @@ func (d *Direct) Polyline(p *svg.Polyline, transformChain svgtransform.Transform
 func (d *Direct) Circle(c *svg.Circle, transformChain svgtransform.TransformChain) fun.Option[*gcode.Gcode] {
 	g := gcode.NewGcode()
 	d.addIdComment(g, "Circle", c.Id)
-	if len(transformChain) != 0 {
-		// We transform the circle, better let the path converter figure that one out
-		pathStr := fmt.Sprintf(
-			"M %g %g A %g %g 0 1 0 %g %g A %g %g 0 1 0 %g %g Z",
-			c.CX-c.R, c.CY, c.R, c.R, c.CX+c.R, c.CY, c.R, c.R, c.CX-c.R, c.CY)
-		return d.PathStr(g, pathStr, transformChain)
-	}
+	//if len(transformChain) != 0 {
+	// We transform the circle, better let the path converter figure that one out
+	pathStr := fmt.Sprintf(
+		"M %g %g A %g %g 0 1 0 %g %g A %g %g 0 1 0 %g %g Z",
+		c.CX-c.R, c.CY, c.R, c.R, c.CX+c.R, c.CY, c.R, c.R, c.CX-c.R, c.CY)
+	return d.PathStr(g, pathStr, transformChain)
+	//}
 	// No transformations, direct gcode call to draw a circle.
-	g.BoundsMin.X = c.CX - c.R
-	g.BoundsMin.Y = c.CY - c.R
-	g.BoundsMax.X = c.CX + c.R
-	g.BoundsMax.Y = c.CY + c.R
+	//g.BoundsMin.X = c.CX - c.R
+	//g.BoundsMin.Y = c.CY - c.R
+	//g.BoundsMax.X = c.CX + c.R
+	//g.BoundsMax.Y = c.CY + c.R
 	// Start at the top of the circle
-	g.StartCoord = math64.VectorF3{X: c.CX, Y: c.CY - c.R, Z: d.conf.runtime.Plotter.DrawHeight}
-	d.ins.Move(g, g.StartCoord, d.conf.runtime.Plotter.DrawSpeed)
-	d.ins.DrawCircle(g, math64.VectorF2{X: 0, Y: c.R}, c.R, true)
-	return fun.NewSome[*gcode.Gcode](g)
+	//g.StartCoord = math64.VectorF3{X: c.CX, Y: c.CY - c.R, Z: d.conf.runtime.Plotter.DrawHeight}
+	//d.ins.Move(g, g.StartCoord, d.conf.runtime.Plotter.DrawSpeed)
+	//d.ins.DrawCircle(g, math64.VectorF2{X: 0, Y: c.R}, c.R, true)
+	//return fun.NewSome[*gcode.Gcode](g)
 }
 
 func (d *Direct) Ellipse(e *svg.Ellipse, transformChain svgtransform.TransformChain) fun.Option[*gcode.Gcode] {
