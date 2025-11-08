@@ -9,11 +9,12 @@ import (
 
 // Create metadata for gcode output
 
-func GcodeAddStatistics(g *gcode.Gcode, plotterConf *conf.PlotterConfig) *gcode.Gcode {
-	if !plotterConf.RemoveComments {
+func GcodeAddSummary(g *gcode.Gcode, runtConf *conf.RuntimeConfig) *gcode.Gcode {
+	if !runtConf.Plotter.RemoveComments {
 		gmeta := g.CopyMeta()
-		ins := gcode.NewIns(plotterConf)
-		ins.AddComment(gmeta, "SVGOCODE statistics")
+		ins := gcode.NewIns(runtConf)
+		ins.AddComment(gmeta, "SVGOCODE Summary")
+		ins.AddComment(gmeta, fmt.Sprintf("Unit: %s", runtConf.PlotterUnit))
 		ins.AddComment(gmeta, fmt.Sprintf("Coordinates (min): %s", g.BoundsMin.String()))
 		ins.AddComment(gmeta, fmt.Sprintf("Coordinates (max): %s", g.BoundsMax.String()))
 		ins.AddComment(gmeta, fmt.Sprintf("Number of instructions: %d", g.Code.NumInstructions()))

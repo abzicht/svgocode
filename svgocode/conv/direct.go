@@ -26,7 +26,7 @@ func NewDirect() *Direct {
 
 func (d *Direct) SetConfig(config *ConvConf) {
 	d.conf = config
-	d.ins = gcode.NewIns(d.conf.plotter)
+	d.ins = gcode.NewIns(d.conf.runtime)
 }
 
 // Add a line that describes the given type and id of the converted svg object
@@ -45,7 +45,7 @@ func (d *Direct) PathStr(g *gcode.Gcode, pathStr string, transformChain svgtrans
 	if err != nil {
 		llog.Panicf("Failed to parse SVG path: %s. Path string: '%s'\n", err.Error(), pathStr)
 	}
-	g = PathCommandsToGcode(cmds, transformChain, g, d.conf.plotter)
+	g = PathCommandsToGcode(cmds, transformChain, g, d.conf.runtime, d.ins)
 	return fun.NewSome[*gcode.Gcode](g)
 }
 
@@ -69,8 +69,8 @@ func (d *Direct) Line(l *svg.Line, transformChain svgtransform.TransformChain) f
 	g.BoundsMax.X = p1.X
 	g.BoundsMax.Y = p1.Y
 	// Actual bounds values will be updated by move operation
-	g.StartCoord = math64.VectorF3{X: p1.X, Y: p1.Y, Z: d.conf.plotter.DrawHeight}
-	d.ins.Move(g, g.StartCoord, d.conf.plotter.DrawSpeed)
+	g.StartCoord = math64.VectorF3{X: p1.X, Y: p1.Y, Z: d.conf.runtime.Plotter.DrawHeight}
+	d.ins.Move(g, g.StartCoord, d.conf.runtime.Plotter.DrawSpeed)
 	d.ins.Draw(g, math64.VectorF2{X: p2.X, Y: p2.Y})
 	return fun.NewSome[*gcode.Gcode](g)
 }
@@ -103,8 +103,8 @@ func (d *Direct) Circle(c *svg.Circle, transformChain svgtransform.TransformChai
 	g.BoundsMax.X = c.CX + c.R
 	g.BoundsMax.Y = c.CY + c.R
 	// Start at the top of the circle
-	g.StartCoord = math64.VectorF3{X: c.CX, Y: c.CY - c.R, Z: d.conf.plotter.DrawHeight}
-	d.ins.Move(g, g.StartCoord, d.conf.plotter.DrawSpeed)
+	g.StartCoord = math64.VectorF3{X: c.CX, Y: c.CY - c.R, Z: d.conf.runtime.Plotter.DrawHeight}
+	d.ins.Move(g, g.StartCoord, d.conf.runtime.Plotter.DrawSpeed)
 	d.ins.DrawCircle(g, math64.VectorF2{X: 0, Y: c.R}, c.R, true)
 	return fun.NewSome[*gcode.Gcode](g)
 }

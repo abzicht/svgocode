@@ -18,6 +18,8 @@ devices and quick file conversion, once a suitable profile is found.
   + `use` resolves to its referenced element.
   + `path` commands are fully covered.
 * Supports the `transform` attribute and all of its functions (`matrix`, `translate`, `translateX`, `translateY`, `scale`, `scaleX`, `scaleY`, `skew`, `skewX`, `skewY`, `rotate`).
+* Supports SVG user units `mm`, `cm`, `in` and GCODE units `mm` and `in`.
+  Values are being converted, if SVG and GCODE units don't match.
 * Translates to GCODE based on customizable plotter / printer profiles.
 * Offers algorithms for minimizing travel distance in-between draw operations.
 * Defines interfaces for easily extending SVGOCODE with custom converters,
@@ -80,6 +82,7 @@ Here is a description of the default configuration parameters:
 # Note: all length units are in mm, speed is in mm/s
 gprefix: "gcode that is placed at the start of the output"
 gsuffix: "gcode that is placed at the end   of the output"
+length-unit: "mm" # Can be "mm" or "in". The unit is applied on gcode and all distance/speed variables in the plotter profile.
 plate:
     center: # Center coordinates of the plotter's base plate
         "x": 150
@@ -113,18 +116,25 @@ projects:
 ```go
 	var parsed_svg svg.SVG
 	decoder := svg.NewDecoder(READER)
-	err = decoder.Decode(&parsed_svg)
-	if err != nil {
-		fmt.Println(err.Error())
-		os.Exit(1)
+	if err := decoder.Decode(&parsed_svg); err != nil {
+        panic(err)
 	}
-	gcode := svgocode.Svg2Gcode( # The all-in-one converter
+	gCode := svgocode.Svg2Gcode( # The all-in-one converter
             &parsed_svg,
             plotter.PlotterConfigLongerLK5ProDefault(), # Plotter profile
             convs.NewDirect(plotterConfig), # Conversion implementation
             ordering.NewGreedy() # Ordering method
         )
-	fmt.Println(gcode.String())
+    // to string
+	fmt.Println(gCode.String())
+    // or encode to writer
+	encoder := gcode.NewEncoder(WRITER)
+	if err := encoder.Encode(gCode); err != nil {
+        panic(err)
+	}
+	if err := encoder.Close(); err != nil {
+        panic(err)
+	}
 ```
 
 ## Troubleshoot & Disclaimer
@@ -167,7 +177,7 @@ before its use. Do so!</b>
 
 ## Contributing
 
-Some SVG feature is not yet supported? Please 
+Some SVG feature is not yet supported? Please
 
 - create an _issue_ or
 - DIY and submit a _pull request_.

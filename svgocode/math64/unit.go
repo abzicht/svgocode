@@ -80,3 +80,11 @@ func LengthConvert(l Float, from, to UnitLength) Float {
 	llog.Panicf("NOT REACHED")
 	return -1
 }
+
+// mm/s
+type Speed Float
+
+// Convert speed from unit 'from' to unit 'to'
+func SpeedConvert(s Speed, from, to UnitLength) Speed {
+	return Speed(LengthConvert(Float(s), from, to))
+}

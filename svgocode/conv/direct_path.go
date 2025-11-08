@@ -12,19 +12,19 @@ import (
 )
 
 type directPathContext struct {
-	g           *gcode.Gcode
-	tMat        *svgtransform.TransformMatrix
-	plotterConf *conf.PlotterConfig
-	ins         *gcode.Ins
+	g        *gcode.Gcode
+	tMat     *svgtransform.TransformMatrix
+	runtConf *conf.RuntimeConfig
+	ins      *gcode.Ins
 }
 
 // This code was partly produced by AI.
 
-func PathCommandsToGcode(commands []svg.PathCommand, transformChain svgtransform.TransformChain, g *gcode.Gcode, plotterConf *conf.PlotterConfig) *gcode.Gcode {
+func PathCommandsToGcode(commands []svg.PathCommand, transformChain svgtransform.TransformChain, g *gcode.Gcode, runtConf *conf.RuntimeConfig, ins *gcode.Ins) *gcode.Gcode {
 	//var b strings.Builder
 
 	tMat := transformChain.ToMatrix()
-	dCtx := directPathContext{g: g, tMat: tMat, plotterConf: plotterConf, ins: gcode.NewIns(plotterConf)}
+	dCtx := directPathContext{g: g, tMat: tMat, runtConf: runtConf, ins: ins}
 	var (
 		//zUp   = plotterConf.RetractHeight // pen/tool up height
 		//zDown = plotterConf.DrawHeight    // pen/tool down height
@@ -183,7 +183,7 @@ func PathCommandsToGcode(commands []svg.PathCommand, transformChain svgtransform
 				//fmt.Fprint(&b, drawPointStr(&dCtx, math64.VectorF2{X: start.X, Y: start.Y}, true))
 				dCtx.ins.Draw(g, dCtx.tMat.ApplyP(math64.VectorF2{X: start.X, Y: start.Y}))
 				//fmt.Fprintf(&b, "G0 Z%.3f\n", zUp)
-				dCtx.ins.Retract(g)
+				//dCtx.ins.Retract(g)
 				penDown = false
 			}
 			current = start
@@ -196,8 +196,8 @@ func PathCommandsToGcode(commands []svg.PathCommand, transformChain svgtransform
 	{
 		startTransformed := tMat.ApplyP(start)
 		currentTransformed := tMat.ApplyP(current)
-		g.StartCoord = math64.VectorF3{X: startTransformed.X, Y: startTransformed.Y, Z: plotterConf.DrawHeight}
-		g.EndCoord = math64.VectorF3{X: currentTransformed.X, Y: currentTransformed.Y, Z: plotterConf.DrawHeight}
+		g.StartCoord = math64.VectorF3{X: startTransformed.X, Y: startTransformed.Y, Z: runtConf.Plotter.DrawHeight}
+		g.EndCoord = math64.VectorF3{X: currentTransformed.X, Y: currentTransformed.Y, Z: runtConf.Plotter.DrawHeight}
 	}
 	//g.AppendCode(b.String())
 	return g

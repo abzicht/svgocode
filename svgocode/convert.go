@@ -13,11 +13,11 @@ import (
 
 // Convert an SVG object to gcode instructions
 func Svg2Gcode(s *svg.SVG, plotterConf *conf.PlotterConfig, converter conv.ConverterI, order ordering.OrderingI) *gcode.Gcode {
-	runtConf := conf.NewRuntimeConfig()
-	runtConf.SetUnitLength(s.UserUnit())
-	converter = conv.WithConfig(converter, conv.NewConvConf(plotterConf, runtConf))
+	svgUnit := s.Unit()
+	runtConf := conf.NewRuntimeConfig(plotterConf, plotterConf.UnitLength, svgUnit)
+	converter = conv.WithConfig(converter, conv.NewConvConf(runtConf))
 
-	plotterTransform := plotterConf.Transform()
+	plotterTransform := runtConf.Plotter.Transform(svgUnit)
 
 	var gcodes []*gcode.Gcode
 	for svgElementPath := range svg.PathSeq(s) {
@@ -49,12 +49,13 @@ func Svg2Gcode(s *svg.SVG, plotterConf *conf.PlotterConfig, converter conv.Conve
 
 	if llog.GetLevel() >= llog.LDebug {
 		//Only call this function, if we even want to print this info
-		llog.Debugf("Non-drawing travel distance before ordering: %.0f%s\n", gcode.TotalDistanceInBetween(gcodes), runtConf.UnitLength)
+		llog.Debugf("Non-drawing travel distance before ordering: %.0f%s\n", gcode.TotalDistanceInBetween(gcodes), runtConf.PlotterUnit)
 	}
 	gcodes = order.Order(gcodes)
+	totalTravelDist := gcode.TotalDistanceInBetween(gcodes)
 	if llog.GetLevel() >= llog.LDebug {
 		//Only call this function, if we even want to print this info
-		llog.Debugf("Non-drawing travel distance after ordering: %.0f%s\n", gcode.TotalDistanceInBetween(gcodes), runtConf.UnitLength)
+		llog.Debugf("Non-drawing travel distance after ordering: %.0f%s\n", totalTravelDist, runtConf.PlotterUnit)
 	}
 
 	// Finally, add prefix and suffix
@@ -63,35 +64,35 @@ func Svg2Gcode(s *svg.SVG, plotterConf *conf.PlotterConfig, converter conv.Conve
 		return gcode.NewGcode()
 	}
 	// Join all instructions
-	gcode_joined := gcode.Join(gcodes, plotterConf)
+	gcode_joined := gcode.Join(gcodes, runtConf)
 
 	// Add statistics, prefix, and suffix
-	gcode_full := GcodeAddStatistics(gcode.Join([]*gcode.Gcode{
-		NewGcodePrefix(plotterConf, runtConf, gcode_joined),
+	gcode_full := GcodeAddSummary(gcode.Join([]*gcode.Gcode{
+		NewGcodePrefix(runtConf, gcode_joined),
 		gcode_joined,
-		NewGcodeSuffix(plotterConf, gcode_joined),
-	}, plotterConf), plotterConf)
+		NewGcodeSuffix(runtConf, gcode_joined),
+	}, runtConf), runtConf)
 	// Remove comments, if they are not desired
-	if plotterConf.RemoveComments {
+	if runtConf.Plotter.RemoveComments {
 		gcode_full.Code = gcode_full.Code.RemoveComments()
 	}
 	return gcode_full
 }
 
 // Create gcode for the plotter's gcode prefix
-func NewGcodePrefix(plotterConf *conf.PlotterConfig, runtConf *conf.RuntimeConfig, body *gcode.Gcode) *gcode.Gcode {
-	ins := gcode.NewIns(plotterConf)
+func NewGcodePrefix(runtConf *conf.RuntimeConfig, body *gcode.Gcode) *gcode.Gcode {
+	ins := gcode.NewIns(runtConf)
 	g := body.CopyMeta()
-	g.AppendCode(plotterConf.GcodePrefix)
+	g.AppendCode(runtConf.Plotter.GcodePrefix)
 	ins.AddComment(g, "--- SVGOCODE START ---")
-	ins.SetUnit(g, runtConf.UnitLength)
+	ins.SetUnit(g, runtConf.PlotterUnit)
 	ins.SetExtrusion(g, 0, true)
 	ins.SetExtrusion(g, 0, false)
-	ins.SetSpeed(g, plotterConf.RetractSpeed, false)
-	ins.SetSpeed(g, plotterConf.DrawSpeed, true)
-	target := math64.VectorF3{X: body.StartCoord.X, Y: body.StartCoord.Y, Z: plotterConf.RetractHeight}
+	ins.SetSpeed(g, runtConf.Plotter.RetractSpeed, false)
+	ins.SetSpeed(g, runtConf.Plotter.DrawSpeed, true)
+	target := math64.VectorF3{X: body.StartCoord.X, Y: body.StartCoord.Y, Z: runtConf.Plotter.RetractHeight}
 	ins.AddComment(g, "Moving to start position of first segment")
-	ins.Move(g, target, plotterConf.RetractSpeed)
+	ins.Move(g, target, runtConf.Plotter.RetractSpeed)
 	g.StartCoord = target
 	g.EndCoord = target
 	g.BoundsMin = target
@@ -100,8 +101,8 @@ func NewGcodePrefix(plotterConf *conf.PlotterConfig, runtConf *conf.RuntimeConfi
 }
 
 // Create gcode for the plotter's gcode suffix, based on the given gcode body
-func NewGcodeSuffix(plotterConf *conf.PlotterConfig, body *gcode.Gcode) *gcode.Gcode {
-	ins := gcode.NewIns(plotterConf)
+func NewGcodeSuffix(runtConf *conf.RuntimeConfig, body *gcode.Gcode) *gcode.Gcode {
+	ins := gcode.NewIns(runtConf)
 	g := gcode.NewGcode()
 	g.StartCoord = body.EndCoord
 	g.EndCoord = body.EndCoord
@@ -110,6 +111,6 @@ func NewGcodeSuffix(plotterConf *conf.PlotterConfig, body *gcode.Gcode) *gcode.G
 	ins.AddComment(g, "SVGOCODE finished, retracting")
 	ins.Retract(g)
 	ins.AddComment(g, "--- SVGOCODE END ---")
-	g.AppendCode(plotterConf.GcodeSuffix)
+	g.AppendCode(runtConf.Plotter.GcodeSuffix)
 	return g
 }

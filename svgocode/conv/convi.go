@@ -22,13 +22,11 @@ type ConverterI interface {
 
 // ConvConf: The greatest type name so far
 type ConvConf struct {
-	plotter *conf.PlotterConfig
 	runtime *conf.RuntimeConfig
 }
 
-func NewConvConf(plotterConf *conf.PlotterConfig, runtConf *conf.RuntimeConfig) *ConvConf {
+func NewConvConf(runtConf *conf.RuntimeConfig) *ConvConf {
 	c := new(ConvConf)
-	c.plotter = plotterConf
 	c.runtime = runtConf
 	return c
 }

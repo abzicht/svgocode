@@ -172,7 +172,7 @@ func (s *SVG) CloneSVGElement() SVGElement {
 }
 
 // Determine the unit defined in the SVG's attributes
-func (s *SVG) UserUnit() (unit math64.UnitLength) {
+func (s *SVG) Unit() (unit math64.UnitLength) {
 	defer func() {
 		if r := recover(); r != nil {
 			llog.Warnf("Failed to determine SVG's unit type based on width/height: '%s'. Assuming millimeters. Verify produced gcode!\n", r)

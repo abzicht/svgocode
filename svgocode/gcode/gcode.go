@@ -135,13 +135,13 @@ func (g *Gcode) AppendCode(code string) {
 // Join two gcodes, merging their boundaries, start/end coordinates, and code.
 // Adds Retract command in-between both codes, if they end/start at different
 // positions.
-func (g *Gcode) Append(g2 *Gcode, plotterConf *conf.PlotterConfig) {
-	ins := NewIns(plotterConf)
-	g2StartRetracted := math64.VectorF3{X: g2.StartCoord.X, Y: g2.StartCoord.Y, Z: plotterConf.RetractHeight}
-	gEndRetracted := math64.VectorF3{X: g.EndCoord.X, Y: g2.EndCoord.Y, Z: plotterConf.RetractHeight}
+func (g *Gcode) Append(g2 *Gcode, runtConf *conf.RuntimeConfig) {
+	ins := NewIns(runtConf)
+	g2StartRetracted := math64.VectorF3{X: g2.StartCoord.X, Y: g2.StartCoord.Y, Z: runtConf.Plotter.RetractHeight}
+	gEndRetracted := math64.VectorF3{X: g.EndCoord.X, Y: g2.EndCoord.Y, Z: runtConf.Plotter.RetractHeight}
 	if !g.EndCoord.Equal(g2.StartCoord) && !g.EndCoord.Equal(g2StartRetracted) && !gEndRetracted.Equal(g2.StartCoord) {
 		ins.Retract(g)
-		ins.Move(g, g2StartRetracted, plotterConf.RetractSpeed)
+		ins.Move(g, g2StartRetracted, runtConf.Plotter.RetractSpeed)
 	}
 	g.EndCoord = g2.EndCoord
 	g.BoundsMin = g.BoundsMin.Min(g2.BoundsMin)
@@ -149,13 +149,13 @@ func (g *Gcode) Append(g2 *Gcode, plotterConf *conf.PlotterConfig) {
 	g.Code.Append(g2.Code)
 }
 
-func Join(gcodes []*Gcode, plotterConf *conf.PlotterConfig) *Gcode {
+func Join(gcodes []*Gcode, runtConf *conf.RuntimeConfig) *Gcode {
 	if len(gcodes) == 0 {
 		llog.Panic("Cannot join gcode segments, provided list is empty")
 	}
 	g := gcodes[0].Copy()
 	for _, g2 := range gcodes[1:] {
-		g.Append(g2, plotterConf)
+		g.Append(g2, runtConf)
 	}
 	return g
 }

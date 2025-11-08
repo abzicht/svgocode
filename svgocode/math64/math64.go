@@ -57,6 +57,3 @@ func Max(floats ...Float) Float {
 	}
 	return f
 }
-
-// mm/s
-type Speed Float

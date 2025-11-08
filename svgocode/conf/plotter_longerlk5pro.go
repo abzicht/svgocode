@@ -7,7 +7,6 @@ M106 S0 ;Turn-off fan
 M107 ; Turn-off fan
 M104 S0 ;Turn-off hotend
 M140 S0 ;Turn-off bed
-;
 G21 ; metric values (mm)
 G90 ; absolute positioning
 M82 ; set extruder to absolute mode
@@ -42,6 +41,7 @@ func PlotterConfigLongerLK5ProDefault() *PlotterConfig {
 	p := new(PlotterConfig)
 	p.GcodePrefix = gCodePrefix
 	p.GcodeSuffix = gCodeSuffix
+	p.UnitLength = math64.UnitMM
 	p.Plate = Plate{
 		Center: math64.VectorF2{X: 150, Y: 150},
 		Min:    math64.VectorF3{X: 0, Y: 0, Z: 0},
