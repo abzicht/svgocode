@@ -13,6 +13,8 @@ devices and quick file conversion, once a suitable profile is found.
 > \* The SVG standard is only partially implemented. For the supported feature
 > set, see below.
 
+<img src="doc/assets/plane-drawn.jpg" alt="The pen-plotted result of a SVG plane that was converted via SVGOCODE" width="500"/>
+
 ## Features
 
 * Supports the following SVG elements: `svg`, `g`, `a`, `defs`, `use`, `path`,
@@ -186,3 +188,9 @@ Some SVG feature is not yet supported? Please
 
 - create an _issue_ or
 - DIY and submit a _pull request_.
+
+## Demo
+
+In [doc/assets](doc/assets), a demo [SVG file](doc/assets/lk5-blueprint.svg) is presented alongside with its [GCODE](doc/assets/lk5-blueprint.gcode) equivalent and the physical drawing that was obtained with said GCODE:
+
+<img src="doc/assets/lk5-blueprint.png" alt="A SVG blueprint with text, shapes, and an aircraft" width="504"/> <img src="doc/assets/blueprint-drawn.jpg" alt="The pen-plotted equivalent of the digital blueprint" width="500"/>
