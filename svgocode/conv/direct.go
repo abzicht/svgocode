@@ -52,10 +52,6 @@ func (d *Direct) PathStr(g *gcode.Gcode, pathStr string, transformChain svgtrans
 	if err != nil {
 		llog.Panicf("Failed to parse SVG path: %s. Path string: '%s'\n", err.Error(), pathStr)
 	}
-	for _, cmd := range cmds {
-		llog.Debugf("%s\n", cmd.String())
-	}
-	llog.Debug("\n\n")
 	g = PathCommandsToGcode(cmds, transformChain, g, d.conf.runtime, d.ins)
 	return fun.NewSome[*gcode.Gcode](g)
 }

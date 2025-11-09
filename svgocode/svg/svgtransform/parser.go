@@ -47,7 +47,7 @@ func ParseTransform(input string) TransformChain {
 
 		// Validate according to SVG spec
 		if err := validateTransform(fnName, len(params)); err != nil {
-			llog.Panicf("Failed to parse transform function: %s(): %v", fnName, err)
+			llog.Panicf("Failed to parse transform function %s() in transform value '%s': %v", fnName, input, err)
 		}
 		var transform Transform
 		switch fnName {
