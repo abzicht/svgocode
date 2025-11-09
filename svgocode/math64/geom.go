@@ -29,6 +29,10 @@ func (r AngRad) Tan() Float {
 	return Float(math.Tan(float64(r)))
 }
 
+func Atan2(y, x Float) AngRad {
+	return AngRad(math.Atan2(float64(y), float64(x)))
+}
+
 func (v VectorF2) DistEuclid(v2 VectorF2) Float {
 	x := v.X - v2.X
 	y := v.Y - v2.Y

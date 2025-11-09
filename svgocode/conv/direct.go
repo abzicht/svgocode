@@ -52,6 +52,10 @@ func (d *Direct) PathStr(g *gcode.Gcode, pathStr string, transformChain svgtrans
 	if err != nil {
 		llog.Panicf("Failed to parse SVG path: %s. Path string: '%s'\n", err.Error(), pathStr)
 	}
+	for _, cmd := range cmds {
+		llog.Debugf("%s\n", cmd.String())
+	}
+	llog.Debug("\n\n")
 	g = PathCommandsToGcode(cmds, transformChain, g, d.conf.runtime, d.ins)
 	return fun.NewSome[*gcode.Gcode](g)
 }
@@ -118,7 +122,7 @@ func (d *Direct) Ellipse(e *svg.Ellipse, transformChain svgtransform.TransformCh
 	// No need to use math here, just convert the ellipse to a SVG path and let the
 	// path parser do the work.
 	pathStr := fmt.Sprintf(
-		"M %g %g A %g %g 0 1 0 %g %g A %g %g 0 1 0 %g %g Z",
+		"M %g,%g A %g,%g 0 1,0 %g,%g A %g,%g 0 1,0 %g,%g Z",
 		e.CX-e.RX, e.CY, e.RX, e.RY, e.CX+e.RX, e.CY, e.RX, e.RY, e.CX-e.RX, e.CY)
 	return d.PathStr(g, pathStr, transformChain)
 }

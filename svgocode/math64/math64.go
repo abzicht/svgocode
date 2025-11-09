@@ -22,6 +22,10 @@ func (f Float) Pow(f2 Float) Float {
 	return Float(math.Pow(float64(f), float64(f2)))
 }
 
+func (f Float) Sqrt() Float {
+	return Float(math.Sqrt(float64(f)))
+}
+
 func (f Float) Min(f2 Float) Float {
 	if f < f2 {
 		return f

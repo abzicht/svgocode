@@ -464,7 +464,7 @@ type Ellipse struct {
 	CX math64.Float `xml:"cx,attr"`
 	CY math64.Float `xml:"cy,attr"`
 	RX math64.Float `xml:"rx,attr"`
-	RY math64.Float `xml:"rY,attr"`
+	RY math64.Float `xml:"ry,attr"`
 }
 
 func (e *Ellipse) Clone() *Ellipse {
