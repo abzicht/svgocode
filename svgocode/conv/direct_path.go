@@ -42,7 +42,7 @@ func PathCommandsToGcode(commands []svg.PathCommand, transformChain svgtransform
 	penDown := false
 
 	// Header
-	//dCtx.ins.Retract(g)
+	dCtx.ins.Retract(g)
 
 	if len(commands) == 0 {
 		llog.Panic("No commands to convert\n")
@@ -172,6 +172,7 @@ func PathCommandsToGcode(commands []svg.PathCommand, transformChain svgtransform
 		case svg.CmdClosePath:
 			if penDown {
 				dCtx.ins.Draw(g, dCtx.project(math64.VectorF2{X: start.X, Y: start.Y}))
+				dCtx.ins.Retract(g)
 				penDown = false
 			}
 			current = start
