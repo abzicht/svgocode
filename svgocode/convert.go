@@ -11,7 +11,7 @@ import (
 	"github.com/abzicht/svgocode/svgocode/svg"
 )
 
-// Convert an SVG object to gcode instructions
+// Convert an SVG object to GCODE instructions
 func Svg2Gcode(s *svg.SVG, plotterConf *conf.PlotterConfig, converter conv.ConverterI, order ordering.OrderingI) *gcode.Gcode {
 	svgUnit := s.Unit()
 	runtConf := conf.NewRuntimeConfig(plotterConf, plotterConf.UnitLength, svgUnit)
@@ -25,7 +25,7 @@ func Svg2Gcode(s *svg.SVG, plotterConf *conf.PlotterConfig, converter conv.Conve
 			continue
 		}
 		svgElement := svgElementPath[len(svgElementPath)-1]
-		// First, convert the svg objects to individual gcode segments using the
+		// Convert the SVG objects to individual GCODE segments using the
 		// provided converter.
 		if svg.IsLeaf(svgElement) {
 			transformChain := append(plotterTransform, svg.TransformChainForPath(svgElementPath)...)
@@ -40,17 +40,21 @@ func Svg2Gcode(s *svg.SVG, plotterConf *conf.PlotterConfig, converter conv.Conve
 		} else {
 			switch svgElement.(type) {
 			case *svg.Text:
-				llog.Warn("Text elements are not supported and will not be added to gcode. Please convert text to paths.\n")
+				llog.Warn("Text elements are not supported and will not be added to GCODE. Please convert text to paths.\n")
 			}
 		}
 	}
-	// Then, order the gcode segments, e.g., such that travel distance is
-	// minimized (depends on the given ordering method)
 
+	if len(gcodes) < 1 {
+		llog.Warn("No GCODE produced\n")
+		return gcode.NewGcode()
+	}
 	if llog.GetLevel() >= llog.LDebug {
 		//Only call this function, if we even want to print this info
 		llog.Debugf("Non-drawing travel distance before ordering: %.0f%s\n", gcode.TotalDistanceInBetween(gcodes), runtConf.PlotterUnit)
 	}
+	// Order the gcode segments, e.g., such that travel distance is
+	// minimized (depends on the given ordering method)
 	gcodes = order.Order(gcodes)
 	totalTravelDist := gcode.TotalDistanceInBetween(gcodes)
 	if llog.GetLevel() >= llog.LDebug {
@@ -58,11 +62,6 @@ func Svg2Gcode(s *svg.SVG, plotterConf *conf.PlotterConfig, converter conv.Conve
 		llog.Debugf("Non-drawing travel distance after ordering: %.0f%s\n", totalTravelDist, runtConf.PlotterUnit)
 	}
 
-	// Finally, add prefix and suffix
-	if len(gcodes) < 1 {
-		llog.Warn("No gcode produced\n")
-		return gcode.NewGcode()
-	}
 	// Join all instructions
 	gcode_joined := gcode.Join(gcodes, runtConf)
 

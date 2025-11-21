@@ -54,7 +54,7 @@ func PlotterConfigLongerLK5ProDefault() *PlotterConfig {
 	p.RemoveComments = false
 	p.MirrorX = false
 	p.MirrorY = true
-	p.PenOffset = math64.VectorF2{X: 47, Y: 30}
+	p.PenOffset = math64.VectorF2{X: 52, Y: 30}
 	p.yamlPrefix = longerLK5ProYamlPrefix
 	return p
 }
