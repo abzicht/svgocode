@@ -8,10 +8,12 @@ import (
 type OrderingAlg string
 
 const (
-	OrderingAlgTwoOpt = OrderingAlg("2opt")
-	OrderingAlgGreedy = OrderingAlg("greedy")
-	OrderingAlgNone   = OrderingAlg("none")
-	OrderingAlgLifo   = OrderingAlg("reverse")
+	OrderingAlgTwoOpt                   = OrderingAlg("2opt")
+	OrderingAlgGreedy                   = OrderingAlg("greedy")
+	OrderingAlgNone                     = OrderingAlg("none")
+	OrderingAlgLifo                     = OrderingAlg("reverse")
+	OrderingAlgNumInstructions          = OrderingAlg("numinstructions")
+	OrderingAlgNumInstructionsAscending = OrderingAlg("numinstructions-asc")
 )
 
 type OrderingI interface {
@@ -30,6 +32,10 @@ func ParseOrdering(alg OrderingAlg) OrderingI {
 		return NewNone()
 	case OrderingAlgLifo:
 		return NewLifo()
+	case OrderingAlgNumInstructions:
+		return NewNumInstructions(true)
+	case OrderingAlgNumInstructionsAscending:
+		return NewNumInstructions(false)
 	default:
 		llog.Panicf("Unknown ordering algorithm: '%s'", alg)
 		return nil
