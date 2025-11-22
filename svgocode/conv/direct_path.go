@@ -43,8 +43,10 @@ func PathCommandsToGcode(commands []svg.PathCommand, transformChain svgtransform
 	pathSegmentStart := math64.VectorF2{X: 0, Y: 0} // The first point since the last drawing began
 	penDown := false
 
-	// Header
-	dCtx.ins.Retract(g)
+	//dCtx.ins.Retract(g)
+	/* A retract at this place messes with the initialization of min/max
+	 * bounds. It is not a good idea to start gcode with a retract instruction.
+	 */
 
 	if len(commands) == 0 {
 		llog.Panic("No commands to convert\n")

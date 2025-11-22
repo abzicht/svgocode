@@ -104,7 +104,6 @@ func main() {
 		}
 		writer = fi
 	}
-	llog.Debug(f.GcodeFile)
 	// Encode gcode
 	encoder := gcode.NewEncoder(writer)
 	if err = encoder.Encode(gcode_); err != nil {

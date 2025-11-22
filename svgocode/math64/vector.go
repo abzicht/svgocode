@@ -73,13 +73,13 @@ func (v VectorF4) Max(v2 VectorF4) VectorF4 {
 }
 
 func (v VectorF2) String() string {
-	return fmt.Sprintf("%fx %fy", v.X, v.Y)
+	return fmt.Sprintf("%.2fx %.2fy", v.X, v.Y)
 }
 
 func (v VectorF3) String() string {
-	return fmt.Sprintf("%fx %fy %fz", v.X, v.Y, v.Z)
+	return fmt.Sprintf("%.2fx %.2fy %.2fz", v.X, v.Y, v.Z)
 }
 
 func (v VectorF4) String() string {
-	return fmt.Sprintf("%fx %fy %fz %fw", v.X, v.Y, v.Z, v.W)
+	return fmt.Sprintf("%.2fx %.2fy %.2fz %.2fw", v.X, v.Y, v.Z, v.W)
 }
